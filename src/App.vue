@@ -9,12 +9,13 @@ import {
   Sparkles, Activity, Play, Minus, X,
   Settings, MessageSquareDot, Send, KeyRound,
   FolderOpen, User, ChevronDown, Pin, PinOff, BookText,
-  Bell, BellOff, Copy
+  Bell, BellOff, Copy, HelpCircle
 } from 'lucide-vue-next';
 
 // ── 常量 ──────────────────────────────────────────────────────────
 const TAB_CHAT = 'chat';
 const TAB_SETTINGS = 'settings';
+const TAB_TUTORIAL = 'tutorial';
 
 // ── 窗口控制 ──────────────────────────────────────────────────────
 const win = getCurrentWindow();
@@ -66,7 +67,7 @@ const I18N_BUNDLES = {
     groupCb: "开启群聊日志翻译 (带有 group 字样的频道)", uiLangLabel: "软件界面语言",
     saveBtn: "💾 保存设置", apiKeyFloatTip: "填写 API Key 才能翻译：",
     inputPlc: "输入你的母语...回车翻译为对方语言并复制到剪贴板",
-    nearbyTab: "附近"
+    nearbyTab: "附近", tutorialTitle: "使用教程"
   },
   'en-US': {
     appTitle: "AISLtalk", listeningInfo: "Listening", startListening: "Start Listening",
@@ -80,7 +81,7 @@ const I18N_BUNDLES = {
     groupCb: "Enable group chat translation (files containing 'group')", uiLangLabel: "UI Language",
     saveBtn: "💾 Save Settings", apiKeyFloatTip: "Enter API Key to enable translation:",
     inputPlc: "Type in your language...Enter to translate & copy to clipboard",
-    nearbyTab: "Nearby"
+    nearbyTab: "Nearby", tutorialTitle: "Tutorial"
   }
 };
 
@@ -570,6 +571,16 @@ const openHistoryFolder = async () => {
           <BookText :size="14" />
         </button>
 
+        <!-- 教程 -->
+        <button
+          class="ctrl-btn"
+          :class="{ active: activeTab === TAB_TUTORIAL }"
+          :title="i18n.tutorialTitle"
+          @click="activeTab = activeTab === TAB_TUTORIAL ? TAB_CHAT : TAB_TUTORIAL"
+        >
+          <HelpCircle :size="14" />
+        </button>
+
         <!-- 设置 -->
         <button
           class="ctrl-btn"
@@ -724,6 +735,59 @@ const openHistoryFolder = async () => {
 
           <button class="btn-save" @click="saveSettings">{{ i18n.saveBtn }}</button>
 
+        </section>
+      </Transition>
+
+      <!-- 教程面板 -->
+      <Transition name="slide-down">
+        <section class="settings-panel tutorial-panel" v-if="activeTab === TAB_TUTORIAL" style="overflow-y: auto;">
+          <!-- 中文教程 -->
+          <div v-if="settings.uiLang === 'zh-CN' || settings.uiLang === 'custom'" style="line-height: 1.6; user-select: text;">
+            <h2 style="margin-top:0;">AI SLtalk 使用教程</h2>
+            <p>欢迎使用这套静默响应的 SL 语音中继与翻译辅助工具。它不需要侵入系统，只需利用本地日志监控或 LSL 脚本转发，即可实现顺滑交流。</p>
+
+            <h3>1. 基础配置（本地监听）</h3>
+            <ul style="padding-left:20px; font-size: 0.9em; opacity: 0.9;">
+              <li>首先请在 Firestorm 偏好设置中，开启<b>“保存附近及 IM 聊天记录”</b>。</li>
+              <li>接着输入你的 <b>API Key</b> 与 <b>Base URL</b>。（若只用默认官方 OpenAI 则不用填 Base URL）。</li>
+              <li>点击右上角“开启监听”，当其他人发言时系统将自动翻译并呈现在列表中。</li>
+            </ul>
+
+            <h3>2. LSL 公屏中继（免监控日志方式）</h3>
+            <p style="font-size: 0.9em; opacity: 0.9;">为了防丢包及低延迟，我们支持实时抓取并在本地呈现。</p>
+            <ol style="padding-left:20px; font-size: 0.9em; opacity: 0.9;">
+              <li>下载并在电脑运行 <code>ngrok http 29853</code> 命令，获取一枚映射地址（详见 ngrok.com）。</li>
+              <li>将生成的 <code>https://xxx.ngrok.app</code> 填入应用设置的公网 URL 空白处。</li>
+              <li>点击下方的 <b>“复制 LSL 脚本到剪贴板”</b>。</li>
+              <li>登录 SL 游戏，创建一个基础物品（如方块），添加到你的 HUD 插槽中，新建此脚本并粘贴刚才复制的代码。</li>
+              <li>现在佩戴它，你即可脱离本地日志环境秒取周边的跨文化信息！</li>
+            </ol>
+            <p style="text-align:center; opacity:0.6; margin-top:30px; font-size: 0.8em;">AI SLtalk 2026 - 为高效跨语言环境而生</p>
+          </div>
+
+          <!-- English Tutorial -->
+          <div v-else style="line-height: 1.6; user-select: text;">
+            <h2 style="margin-top:0;">AI SLtalk Tutorial</h2>
+            <p>Welcome to this seamless SL chat relay plugin! It captures data natively via logs or HUD scripts for automated robust translation.</p>
+
+            <h3>1. Basic Setup (Log Scanner)</h3>
+            <ul style="padding-left:20px; font-size: 0.9em; opacity: 0.9;">
+              <li>First, enable <b>"Save nearby and IM chats"</b> inside the Firestorm preferences window.</li>
+              <li>Next, enter your <b>API Key</b> and <b>Base URL</b>. (Base URL is optional if using the official OpenAI servers).</li>
+              <li>Click the "Start Listening" button on the top bar. You're set!</li>
+            </ul>
+
+            <h3>2. LSL High-speed Relay (Ngrok Required)</h3>
+            <p style="font-size: 0.9em; opacity: 0.9;">To ensure no loss of packets and faster capturing, we offer direct scripted local transfers.</p>
+            <ol style="padding-left:20px; font-size: 0.9em; opacity: 0.9;">
+              <li>Run the <code>ngrok http 29853</code> command locally (grab Ngrok at ngrok.com).</li>
+              <li>Paste the auto-generated <code>https://xxx.ngrok.app</code> into the Public URL box located in settings.</li>
+              <li>Click below to <b>Copy LSL Script</b>.</li>
+              <li>In Second Life, build a simple object attached as your HUD, create a new script file inside, and paste the code.</li>
+              <li>Wear it, and start experiencing lightning-speed translations right here internally without relying on raw game logs!</li>
+            </ol>
+            <p style="text-align:center; opacity:0.6; margin-top:30px; font-size: 0.8em;">AI SLtalk 2026 - Designed for seamless intercultural SL experiences</p>
+          </div>
         </section>
       </Transition>
 
