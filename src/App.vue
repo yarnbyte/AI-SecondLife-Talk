@@ -39,7 +39,8 @@ const settings = ref({
   apiKey:     '',
   baseUrl:    API_DEFAULTS.BASE_URL,
   model:      API_DEFAULTS.MODEL,
-  targetLang: 'Chinese',
+  recvLang:   'Simplified Chinese', // 别人发来的翻译成什么
+  sendLang:   'English',            // 我发出的文本翻译成什么
   contextCount: 5,
 });
 const accountList = ref([]);
@@ -107,7 +108,15 @@ onMounted(async () => {
   // 读取持久化设置
   const saved = localStorage.getItem('sl-translator-settings');
   if (saved) {
-    try { Object.assign(settings.value, JSON.parse(saved)); } catch (_) {}
+    try { 
+      const parsed = JSON.parse(saved);
+      // 兼容旧版单一 targetLang
+      if (parsed.targetLang && !parsed.recvLang) {
+        parsed.recvLang = parsed.targetLang;
+        delete parsed.targetLang;
+      }
+      Object.assign(settings.value, parsed); 
+    } catch (_) {}
   }
 
   // 如果没有保存的路径，自动解析 %APPDATA%\Firestorm_x64 的真实路径
@@ -180,7 +189,7 @@ onMounted(async () => {
       apiKey:     settings.value.apiKey,
       baseUrl:    settings.value.baseUrl,
       model:      settings.value.model,
-      targetLang: settings.value.targetLang,
+      targetLang: settings.value.recvLang,
     });
   });
 
@@ -269,7 +278,7 @@ const sendMyMessage = async () => {
     apiKey:     settings.value.apiKey,
     baseUrl:    settings.value.baseUrl,
     model:      settings.value.model,
-    targetLang: 'English',
+    targetLang: settings.value.sendLang,
   });
 
   await TauriBridge.copyToClipboard(translatedResult);
@@ -399,8 +408,13 @@ const scrollToBottom = () => {
           </div>
 
           <div class="form-section">
-            <label class="form-label">目标语言（收到消息翻译为）</label>
-            <input v-model="settings.targetLang" class="form-input" placeholder="Simplified Chinese" />
+            <label class="form-label">将其发来的消息，翻译为：</label>
+            <input v-model="settings.recvLang" class="form-input" placeholder="Simplified Chinese / English / etc..." />
+          </div>
+
+          <div class="form-section">
+            <label class="form-label">将我发出的内容，翻译为：</label>
+            <input v-model="settings.sendLang" class="form-input" placeholder="English / Spanish / etc..." />
           </div>
 
           <div class="form-section">
