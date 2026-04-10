@@ -64,7 +64,8 @@ const I18N_BUNDLES = {
     ctxCountSetting: "翻译参考上文的条数（默认 5 条，填 0 关闭）",
     groupCb: "开启群聊日志翻译 (带有 group 字样的频道)", uiLangLabel: "软件界面语言",
     saveBtn: "💾 保存设置", apiKeyFloatTip: "填写 API Key 才能翻译：",
-    inputPlc: "输入你的母语...回车翻译为对方语言并复制到剪贴板"
+    inputPlc: "输入你的母语...回车翻译为对方语言并复制到剪贴板",
+    nearbyTab: "附近"
   },
   'en-US': {
     appTitle: "AISLtalk", listeningInfo: "Listening", startListening: "Start Listening",
@@ -77,7 +78,8 @@ const I18N_BUNDLES = {
     ctxCountSetting: "Context lines for translation (0 = disabled):",
     groupCb: "Enable group chat translation (files containing 'group')", uiLangLabel: "UI Language",
     saveBtn: "💾 Save Settings", apiKeyFloatTip: "Enter API Key to enable translation:",
-    inputPlc: "Type in your language...Enter to translate & copy to clipboard"
+    inputPlc: "Type in your language...Enter to translate & copy to clipboard",
+    nearbyTab: "Nearby"
   }
 };
 
@@ -107,7 +109,7 @@ const settingsValid = computed(() =>
 const chatTabs = ref([
   {
     id: 'chat.txt',
-    title: '附近',
+    title: 'nearby',
     messages: [
       {
         time: new Date().toLocaleTimeString(),
@@ -339,7 +341,7 @@ onMounted(async () => {
     if (!tabInfo) {
       let title = source.replace(/\.txt$/i, '').replace(/\.log$/i, '');
       if (source.toLowerCase() === 'conversation.log' || source.toLowerCase() === 'chat.txt') {
-        title = '附近';
+        title = 'nearby';
       }
       tabInfo = { id: source, title, messages: [], hasUnread: true };
       chatTabs.value.push(tabInfo);
@@ -711,7 +713,7 @@ const openHistoryFolder = async () => {
           class="chat-tab-item" 
           :class="{ active: activeChatTabId === t.id, unread: t.hasUnread }"
           @click="switchTab(t.id)">
-          <span class="tab-title">{{ t.title }}</span>
+          <span class="tab-title">{{ (t.id === 'chat.txt' || t.id === 'conversation.log') ? i18n.nearbyTab : t.title }}</span>
           <button class="tab-close tab-ctrl-btn" title="免打扰 (停止翻译此频道)" @click.stop="toggleBlacklist(t.id)">
             <BellOff v-if="isTargetBlacklisted(t.id)" :size="10" />
             <Bell v-else :size="10" />
