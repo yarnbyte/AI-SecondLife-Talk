@@ -69,6 +69,17 @@ fn list_accounts(log_dir: String) -> Vec<String> {
     accounts
 }
 
+// ── 命令区域 ─────────────────────────────────────────────────────────
+
+#[tauri::command]
+fn toggle_topmost(app: AppHandle, pin: bool) {
+    if let Some(win) = app.get_webview_window("main") {
+        let _ = win.set_always_on_top(pin);
+        // 置顶状态下脱离任务栏，转换为 ToolWindow 性质，从而直接免疫 Windows Win+D 的切屏和最小化打击
+        let _ = win.set_skip_taskbar(pin);
+    }
+}
+
 /// 显示主窗口（托盘点击时调用）
 #[tauri::command]
 fn show_main_window(app: AppHandle) {
@@ -138,7 +149,8 @@ pub fn run() {
             open_folder_dialog,
             get_default_log_dir,
             list_accounts,
-            show_main_window
+            show_main_window,
+            toggle_topmost
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -25,7 +25,7 @@ const handleClose    = () => win.hide();
 const isPinned = ref(false);
 const togglePin = async () => {
   isPinned.value = !isPinned.value;
-  await win.setAlwaysOnTop(isPinned.value);
+  await invoke('toggle_topmost', { pin: isPinned.value });
 };
 
 // ── 页面状态 ──────────────────────────────────────────────────────
@@ -88,12 +88,25 @@ onMounted(async () => {
     await refreshAccounts();
   }
 
+  let lastMsgHash = '';
+  let lastMsgTime = 0;
+
   // 侦听后端日志推送
   await TauriBridge.onLogUpdate(async (payload) => {
     if (!payload?.includes(': ')) return;
     const colonIdx = payload.indexOf(': ');
     const sender   = payload.slice(0, colonIdx);
     const text     = payload.slice(colonIdx + 2);
+    
+    // 基础去重（防止 Firestorm 多文件记录同一个消息）
+    const msgHash = `${sender}||${text}`;
+    const now = Date.now();
+    if (msgHash === lastMsgHash && (now - lastMsgTime) < 2000) {
+      return; 
+    }
+    lastMsgHash = msgHash;
+    lastMsgTime = now;
+
     const newItem  = { time: new Date().toLocaleTimeString(), sender, text, translated: '' };
     
     // 把对象塞入具有 Proxy 深层响应式的数组中

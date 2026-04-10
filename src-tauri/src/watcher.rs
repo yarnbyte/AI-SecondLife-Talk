@@ -11,6 +11,10 @@ use crate::constants::EVENT_LOG_UPDATE;
 // 记录每个被监听文件的已读字节偏移量
 type OffsetMap = Arc<Mutex<HashMap<PathBuf, u64>>>;
 
+use std::sync::atomic::{AtomicBool, Ordering};
+
+static IS_WATCHING: AtomicBool = AtomicBool::new(false);
+
 pub struct LogWatcherService;
 
 impl LogWatcherService {
@@ -18,6 +22,11 @@ impl LogWatcherService {
     pub fn start_watching(app_handle: AppHandle, target_dir: PathBuf) -> Result<(), String> {
         if !target_dir.is_dir() {
             return Err(format!("聊天记录日志目录不存在: {}", target_dir.display()));
+        }
+
+        // 防多指/重复点击产生无限线程
+        if IS_WATCHING.swap(true, Ordering::SeqCst) {
+            return Ok(());
         }
 
         let offsets: OffsetMap = Arc::new(Mutex::new(HashMap::new()));
