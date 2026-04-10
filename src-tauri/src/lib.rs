@@ -40,6 +40,14 @@ async fn open_folder_dialog(app: AppHandle) -> Option<String> {
     }
 }
 
+/// 获取 Firestorm 日志的默认真实路径（解析 %APPDATA%，不是字面字符串）
+#[tauri::command]
+fn get_default_log_dir() -> Option<String> {
+    std::env::var("APPDATA").ok().map(|appdata| {
+        format!("{}\\Firestorm_x64", appdata)
+    })
+}
+
 /// 扫描日志目录下所有以 _resident 结尾的子文件夹（即 SL 账号文件夹）
 #[tauri::command]
 fn list_accounts(log_dir: String) -> Vec<String> {
@@ -75,7 +83,8 @@ pub fn run() {
             start_listen_log,
             copy_to_clipboard,
             open_folder_dialog,
-            list_accounts
+            list_accounts,
+            get_default_log_dir
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

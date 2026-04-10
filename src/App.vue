@@ -65,6 +65,21 @@ onMounted(async () => {
     try { Object.assign(settings.value, JSON.parse(saved)); } catch (_) {}
   }
 
+  // 如果没有保存的路径，自动解析 %APPDATA%\Firestorm_x64 的真实路径
+  if (!settings.value.logDir) {
+    try {
+      const defaultDir = await invoke('get_default_log_dir');
+      if (defaultDir) {
+        settings.value.logDir = defaultDir;
+      }
+    } catch (_) {}
+  }
+
+  // 有路径就自动扫描账号列表
+  if (settings.value.logDir) {
+    await refreshAccounts();
+  }
+
   // 侦听后端日志推送
   await TauriBridge.onLogUpdate(async (payload) => {
     if (!payload?.includes(': ')) return;
