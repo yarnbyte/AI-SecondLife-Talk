@@ -4,6 +4,15 @@ import { TauriBridge } from './services/TauriBridge';
 import { LLMService } from './services/LLMService';
 import { API_DEFAULTS } from './utils/constants';
 import { Settings2, Play, Activity, MessageSquareDot, Send, KeyRound, Sparkles, X } from 'lucide-vue-next';
+import { getCurrentWindow } from '@tauri-apps/api/window';
+
+const handleDrag = () => {
+    try {
+        getCurrentWindow().startDragging();
+    } catch (e) {
+        console.error("Drag start failed", e);
+    }
+};
 
 const isListening = ref(false);
 // 带有模拟数据的对话以测试效果
@@ -95,13 +104,13 @@ const closeInput = () => {
 </script>
 
 <template>
-  <div class="glass-app-container" data-tauri-drag-region>
+  <div class="glass-app-container" @mousedown.self="handleDrag">
     
     <!-- 极光光效装饰 -->
-    <div class="aurora-fx" data-tauri-drag-region></div>
+    <div class="aurora-fx" @mousedown="handleDrag"></div>
 
     <!-- 高级顶栏 -->
-    <header class="header-nav" data-tauri-drag-region>
+    <header class="header-nav" @mousedown="handleDrag">
         <div class="brand">
             <Sparkles class="icon highlight-icon" :size="18" />
             <span class="brand-text">AITranslate Core</span>
