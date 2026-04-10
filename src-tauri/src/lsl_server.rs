@@ -65,14 +65,33 @@ pub fn stop() {
 
 /// 处理单个 TCP 连接：解析 HTTP 请求，提取 JSON body，推送事件
 fn handle_connection(mut stream: TcpStream, app: AppHandle) {
-    stream.set_read_timeout(Some(std::time::Duration::from_secs(READ_TIMEOUT_SECS))).ok();
+    stream.set_read_timeout(Some(std::time::Duration::from_millis(50))).ok();
 
+    let mut raw_bytes = Vec::new();
     let mut buf = [0u8; 4096];
-    let n = match stream.read(&mut buf) {
-        Ok(n) if n > 0 => n,
-        _ => return,
-    };
-    let raw = String::from_utf8_lossy(&buf[..n]);
+    let mut attempts = 0;
+    
+    // 循环读取，防止 TCP 分片（如 ngrok 将 Header 和 Body 分开发送）导致 body 丢失
+    while attempts < 20 {
+        match stream.read(&mut buf) {
+            Ok(n) if n > 0 => {
+                raw_bytes.extend_from_slice(&buf[..n]);
+                let s = String::from_utf8_lossy(&raw_bytes);
+                // 检测到了请求首部结束且包含了 body（通过 } 判定 JSON 结尾）
+                if s.contains("\r\n\r\n") && s.contains('}') {
+                    break;
+                }
+            },
+            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                attempts += 1;
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            },
+            _ => break,
+        }
+    }
+
+    if raw_bytes.is_empty() { return; }
+    let raw = String::from_utf8_lossy(&raw_bytes);
 
     // 健康检查
     if raw.contains("GET /ping") {
@@ -86,46 +105,33 @@ fn handle_connection(mut stream: TcpStream, app: AppHandle) {
         return;
     }
 
-    // 提取 body（HTTP header 和 body 以 \r\n\r\n 分隔）
-    let body = match raw.find("\r\n\r\n") {
-        Some(idx) => raw[idx + 4..].trim().to_string(),
-        None      => return,
-    };
+    // 提取完整 JSON，处理可能的 Chunked Encoding 头尾
+    let json_start = raw.find('{');
+    let json_end = raw.rfind('}');
+    
+    if let (Some(start), Some(end)) = (json_start, json_end) {
+        if end > start {
+            let maybe_json = &raw[start..=end];
+            // 使用标准的 serde_json 解析，可自动处理 SL 传来的中文 \uXXXX 转义序列！
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(maybe_json) {
+                let sender = v.get("sender").and_then(|s| s.as_str()).unwrap_or("").trim();
+                let text = v.get("text").and_then(|s| s.as_str()).unwrap_or("").trim();
 
-    // 解析 JSON：{"sender":"xxx","text":"yyy"}
-    let sender = extract_json_str(&body, "sender").unwrap_or_default();
-    let text   = extract_json_str(&body, "text").unwrap_or_default();
-
-    if sender.is_empty() || text.is_empty() {
-        let _ = stream.write_all(b"HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\n\r\n");
-        return;
+                if !sender.is_empty() && !text.is_empty() {
+                    let msg = format!("{}: {}", sender, text);
+                    let _ = app.emit(EVENT_LOG_UPDATE, LogPayload {
+                        source: NEARBY_SOURCE.to_string(),
+                        msg,
+                    });
+                    let _ = stream.write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nOK");
+                    return;
+                }
+            }
+        }
     }
 
-    // 构造与文件监听一致的 payload 格式：  "SenderName: message"
-    let msg = format!("{}: {}", sender, text);
-    let _ = app.emit(EVENT_LOG_UPDATE, LogPayload {
-        source: NEARBY_SOURCE.to_string(),
-        msg,
-    });
-
-    let _ = stream.write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nOK");
-}
-
-/// 极简 JSON 字符串字段提取（避免引入 serde_json 解析依赖）
-fn extract_json_str(json: &str, key: &str) -> Option<String> {
-    let pattern = format!("\"{}\"", key);
-    let key_pos = json.find(&pattern)?;
-    let after_key = &json[key_pos + pattern.len()..];
-    let colon_pos = after_key.find(':')?;
-    let after_colon = after_key[colon_pos + 1..].trim_start();
-
-    if after_colon.starts_with('"') {
-        let content = &after_colon[1..];
-        let end = content.find('"')?;
-        Some(content[..end].replace("\\\"", "\"").replace("\\n", "\n"))
-    } else {
-        None
-    }
+    // 解析失败情况
+    let _ = stream.write_all(b"HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\n\r\n");
 }
 
 /// 尝试获取本机局域网 IP
