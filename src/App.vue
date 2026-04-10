@@ -749,7 +749,7 @@ const openHistoryFolder = async () => {
             <h3>1. 基础配置（本地监听）</h3>
             <ul style="padding-left:20px; font-size: 0.9em; opacity: 0.9;">
               <li>输入你的 <b>API Key</b> 与 <b>Base URL</b>。（若只用默认官方 OpenAI 则不用填 Base URL）。</li>
-              <li>点击右上角“开启监听”，当其他人发言时系统将自动翻译并呈现在列表中。</li>
+              <li>点击右上角“开启监听”，当游戏内接收到他人发言（包含附近发言或个人私聊）时系统将自动翻译并呈现在列表中。</li>
             </ul>
 
             <h3>2. LSL 公屏中继（免监控日志方式）</h3>
