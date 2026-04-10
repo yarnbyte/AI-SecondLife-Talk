@@ -753,7 +753,6 @@ const openHistoryFolder = async () => {
             </ul>
 
             <h3>2. LSL 公屏中继（免监控日志方式）</h3>
-            <p style="font-size: 0.9em; opacity: 0.9;">为了防丢包及低延迟，我们支持实时抓取并在本地呈现。</p>
             <ol style="padding-left:20px; font-size: 0.9em; opacity: 0.9;">
               <li>下载并在电脑运行 <code>ngrok http 29853</code> 命令，获取一枚映射地址（详见 ngrok.com）。</li>
               <li>将生成的 <code>https://xxx.ngrok.app</code> 填入应用设置的公网 URL 空白处。</li>
@@ -776,7 +775,6 @@ const openHistoryFolder = async () => {
             </ul>
 
             <h3>2. LSL High-speed Relay (Ngrok Required)</h3>
-            <p style="font-size: 0.9em; opacity: 0.9;">To ensure no loss of packets and faster capturing, we offer direct scripted local transfers.</p>
             <ol style="padding-left:20px; font-size: 0.9em; opacity: 0.9;">
               <li>Run the <code>ngrok http 29853</code> command locally (grab Ngrok at ngrok.com).</li>
               <li>Paste the auto-generated <code>https://xxx.ngrok.app</code> into the Public URL box located in settings.</li>
