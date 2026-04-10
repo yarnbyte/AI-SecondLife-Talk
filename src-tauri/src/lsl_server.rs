@@ -10,12 +10,10 @@
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
 use tauri::{AppHandle, Emitter};
 use crate::constants::EVENT_LOG_UPDATE;
 
 const NEARBY_SOURCE: &str = "chat.txt";
-const READ_TIMEOUT_SECS: u64 = 5;
 
 /// 用于从外部停止服务器
 pub static LSL_SERVER_RUNNING: AtomicBool = AtomicBool::new(false);

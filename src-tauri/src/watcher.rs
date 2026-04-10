@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{BufRead, BufReader, Seek, SeekFrom, Read};
+use std::io::{BufReader, Seek, SeekFrom, Read};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
