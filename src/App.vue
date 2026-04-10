@@ -37,6 +37,7 @@ const settings = ref({
   contextCount: 5,
 });
 const accountList = ref([]);
+const errorMessage = ref('');
 
 // 只要有路径和账号就能开监听，apiKey 可以后填
 const settingsValid = computed(() =>
@@ -138,9 +139,10 @@ const refreshAccounts = async () => {
 
 // ── 监听控制 ──────────────────────────────────────────────────────
 const startListening = async () => {
+  errorMessage.value = '';
   if (!settings.value.logDir || !settings.value.account) {
     activeTab.value = TAB_SETTINGS;
-    alert("请先填写正确的日志目录，并在下拉框中选择你的 SL 账号！\n如果下拉列表为空，请检查日志目录是否正确（必须是 Firestorm_x64 的根目录）。");
+    errorMessage.value = "请先填写正确的日志目录，并在下拉框中选择你的 SL 账号！\n如果下拉列表为空，请检查日志目录是否正确（必须是 Firestorm_x64 的根目录）。";
     return;
   }
   saveSettings();
@@ -150,7 +152,7 @@ const startListening = async () => {
     isListening.value = true;
     activeTab.value   = TAB_CHAT;
   } catch (e) {
-    alert('启动失败: ' + e);
+    errorMessage.value = '引擎启动失败: ' + e;
   }
 };
 
@@ -250,6 +252,10 @@ const scrollToBottom = () => {
       <!-- 设置面板 -->
       <Transition name="slide-down">
         <section class="settings-panel" v-if="activeTab === TAB_SETTINGS">
+
+          <div v-if="errorMessage" class="error-banner">
+            <span style="white-space: pre-wrap;">{{ errorMessage }}</span>
+          </div>
 
           <div class="form-section">
             <label class="form-label"><FolderOpen :size="13" /> Firestorm 日志目录</label>

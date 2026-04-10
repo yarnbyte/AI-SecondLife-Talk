@@ -15,10 +15,7 @@ pub struct LogWatcherService;
 
 impl LogWatcherService {
     /// 启动监听：对 target_dir 下的所有 .log / .txt 文件进行增量轮询
-    pub fn start_watching(app_handle: AppHandle, mut target_dir: PathBuf) -> Result<(), String> {
-        // Firestorm 日志总是存在账户目录下的 logs 文件夹中
-        target_dir.push("logs");
-
+    pub fn start_watching(app_handle: AppHandle, target_dir: PathBuf) -> Result<(), String> {
         if !target_dir.is_dir() {
             return Err(format!("聊天记录日志目录不存在: {}", target_dir.display()));
         }
