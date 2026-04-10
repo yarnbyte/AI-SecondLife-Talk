@@ -22,7 +22,7 @@ A non-intrusive, automated AI translation relay and assistant for **Second Life*
 
 ## 快速使用指南 (中文教程)
 
-欢迎使用 **AI SLtalk**！这款全自动翻译辅助工具可通过静默读取 Firestorm 的控制台日志，或通过 LSL 脚本直接中继来实现翻译体验。
+欢迎使用 **AI SLtalk**！这款全自动翻译辅助工具可通过静默读取 Firestorm 保存的聊天记录文件，或通过 LSL 脚本直接中继来实现翻译体验。
 
 ### 1. 基础配置
 1. 获取翻译引擎 API。你需要拥有一个兼容 OpenAI 格式的 API（如 OpenAI 官方、DeepSeek、千问等）：

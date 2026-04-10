@@ -744,7 +744,7 @@ const openHistoryFolder = async () => {
           <!-- 中文教程 -->
           <div v-if="settings.uiLang === 'zh-CN' || settings.uiLang === 'custom'" style="line-height: 1.6; user-select: text;">
             <h2 style="margin-top:0;">AI SLtalk 使用教程</h2>
-            <p>欢迎使用这套静默响应的 SL 聊天及消息中继与翻译辅助工具。它不需要侵入系统，只需利用本地日志监控或 LSL 脚本转发，即可实现顺滑交流。</p>
+            <p>欢迎使用这套静默响应的 SL 聊天及消息中继与翻译辅助工具。它不需要侵入系统，只需读取 Firestorm 保存的聊天记录文件，或通过 LSL 脚本转发，即可实现顺滑交流。</p>
 
             <h3>1. 基础配置（本地监听）</h3>
             <ul style="padding-left:20px; font-size: 0.9em; opacity: 0.9;">
