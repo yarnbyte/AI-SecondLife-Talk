@@ -140,6 +140,7 @@ const refreshAccounts = async () => {
 const startListening = async () => {
   if (!settings.value.logDir || !settings.value.account) {
     activeTab.value = TAB_SETTINGS;
+    alert("请先填写正确的日志目录，并在下拉框中选择你的 SL 账号！\n如果下拉列表为空，请检查日志目录是否正确（必须是 Firestorm_x64 的根目录）。");
     return;
   }
   saveSettings();

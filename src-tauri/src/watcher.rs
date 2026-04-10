@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{BufRead, BufReader, Seek, SeekFrom};
+use std::io::{BufRead, BufReader, Seek, SeekFrom, Read};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -61,22 +61,30 @@ impl LogWatcherService {
             };
 
             let Ok(mut file) = File::open(&path) else { continue };
-            let Ok(file_len) = file.seek(SeekFrom::End(0)) else { continue };
-
+            
+            // 获取最新文件长度
+            let Ok(meta) = file.metadata() else { continue };
+            let file_len = meta.len();
+            
             if file_len <= current_offset { continue; }
 
+            // 移动到上次读取的位置
             let _ = file.seek(SeekFrom::Start(current_offset));
-            let reader = BufReader::new(&file);
-            let mut new_offset = current_offset;
+            
+            // 使用 read_to_string 保证不管是不是 CRLF 换行都不会导致偏移量计算出错
+            let mut read_buf = String::new();
+            let mut reader = BufReader::new(file);
+            let Ok(_) = reader.read_to_string(&mut read_buf) else { continue };
 
-            for line in reader.lines().flatten() {
-                new_offset += (line.len() + 1) as u64; // +1 for newline
-                if let Some(msg) = Self::parse_log_line(&line) {
+            // 以换行为界，把完整内容分发送
+            for line in read_buf.lines() {
+                if let Some(msg) = Self::parse_log_line(line) {
                     let _ = app.emit(EVENT_LOG_UPDATE, msg);
                 }
             }
 
-            offsets.lock().unwrap().insert(path, new_offset);
+            // 直接用底层文件的绝对 size 替代手工长度叠加
+            offsets.lock().unwrap().insert(path, file_len);
         }
     }
 

@@ -54,7 +54,16 @@ fn list_accounts(log_dir: String) -> Vec<String> {
         .filter_map(|e| e.ok())
         .filter(|e| e.path().is_dir())
         .filter_map(|e| e.file_name().into_string().ok())
-        .filter(|name| name.to_lowercase().ends_with("_resident"))
+        // 过滤常见的非账号类配置目录，剩下的用户子目录都列出来供选择
+        .filter(|name| {
+            let lower = name.to_lowercase();
+            !lower.starts_with('.') 
+            && lower != "logs" 
+            && lower != "browser_profile" 
+            && lower != "dictionaries"
+            && lower != "user_settings"
+            && lower != "crashreports"
+        })
         .collect();
     accounts.sort();
     accounts
