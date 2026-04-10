@@ -748,8 +748,7 @@ const openHistoryFolder = async () => {
 
             <h3>1. 基础配置（本地监听）</h3>
             <ul style="padding-left:20px; font-size: 0.9em; opacity: 0.9;">
-              <li>首先请在 Firestorm 偏好设置 <b>隐私(Privacy) -> 日志与记录 </b> 中，勾选<b>“将附近聊天和即时消息保存到硬盘”</b>。</li>
-              <li>接着输入你的 <b>API Key</b> 与 <b>Base URL</b>。（若只用默认官方 OpenAI 则不用填 Base URL）。</li>
+              <li>输入你的 <b>API Key</b> 与 <b>Base URL</b>。（若只用默认官方 OpenAI 则不用填 Base URL）。</li>
               <li>点击右上角“开启监听”，当其他人发言时系统将自动翻译并呈现在列表中。</li>
             </ul>
 
@@ -772,8 +771,7 @@ const openHistoryFolder = async () => {
 
             <h3>1. Basic Setup (Log Scanner)</h3>
             <ul style="padding-left:20px; font-size: 0.9em; opacity: 0.9;">
-              <li>First, go to Firestorm Preferences -> <b>Privacy -> Logs & Transcripts</b> and check <b>Save nearby chat/IM transcripts</b>.</li>
-              <li>Next, enter your <b>API Key</b> and <b>Base URL</b>. (Base URL is optional if using the official OpenAI servers).</li>
+              <li>Enter your <b>API Key</b> and <b>Base URL</b>. (Base URL is optional if using the official OpenAI servers).</li>
               <li>Click the "Start Listening" button on the top bar. You're set!</li>
             </ul>
 

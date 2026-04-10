@@ -20,11 +20,6 @@
 - 获取到 **API Key**（例如：`sk-xxxxxxx...`）
 - 确认目标 **模型名称/Model**（例如：`deepseek-chat` 或 `gpt-4o-mini`）
 
-### 1.2 准备 Firestorm 客户端设置
-为了让本地翻译功能正常生效，你需要确保已在 Firestorm 中开启聊天记录保存：
-1. 登录 Firestorm 客户端。
-2. 打开“首选项 (Preferences)” -> “隐私 (Privacy)” -> “日志和记录 (Logs & Transcripts)”。
-3. 勾选 **将附近聊天内容保存到硬盘 (Save nearby chat transcripts)** 以及 **将即时消息保存到硬盘 (Save IM transcripts)**。
 
 ---
 
