@@ -26,4 +26,6 @@ notify = "8.2.0"
 tauri-plugin-clipboard-manager = "2.3.2"
 tauri-plugin-global-shortcut = "2.3.1"
 tauri-plugin-fs = "2.5.0"
+tauri-plugin-dialog = "2.7.0"
+tokio = { version = "1.51.1", features = ["rt", "sync"] }
 
