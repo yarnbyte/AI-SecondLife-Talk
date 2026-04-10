@@ -69,6 +69,54 @@ fn list_accounts(log_dir: String) -> Vec<String> {
     accounts
 }
 
+#[tauri::command]
+fn append_translation_history(source: String, timestamp: String, sender: String, text: String, translated: String) -> Result<(), String> {
+    use std::fs::{OpenOptions, create_dir_all};
+    use std::io::Write;
+
+    let appdata = std::env::var("APPDATA").map_err(|e| e.to_string())?;
+    let target_dir = format!("{}\\ai_sl_talk", appdata);
+
+    if let Err(e) = create_dir_all(&target_dir) {
+        return Err(e.to_string());
+    }
+
+    let file_name = if source.ends_with(".txt") || source.ends_with(".log") {
+        source
+    } else {
+        format!("{}.txt", source)
+    };
+    
+    let file_path = format!("{}\\{}", target_dir, file_name);
+    
+    let mut file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(file_path)
+        .map_err(|e| e.to_string())?;
+
+    let log_line = format!("[{}] {}:\n原文: {}\n翻译: {}\n\n", timestamp, sender, text.trim(), translated.trim());
+    if let Err(e) = file.write_all(log_line.as_bytes()) {
+        return Err(e.to_string());
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+fn open_history_folder() -> Result<(), String> {
+    // Windows 环境下快速拉起 explorer 浏览目录
+    let appdata = std::env::var("APPDATA").map_err(|e| e.to_string())?;
+    let target_dir = format!("{}\\ai_sl_talk", appdata);
+    
+    let _ = std::fs::create_dir_all(&target_dir);
+    
+    #[cfg(target_os = "windows")]
+    let _ = std::process::Command::new("explorer").arg(&target_dir).spawn();
+    
+    Ok(())
+}
+
 // ── 命令区域 ─────────────────────────────────────────────────────────
 
 #[tauri::command]
@@ -98,7 +146,7 @@ fn build_tray(app: &tauri::App) -> tauri::Result<()> {
 
     TrayIconBuilder::new()
         .icon(app.default_window_icon().unwrap().clone())
-        .tooltip("AITranslate Core — SL 无感翻译")
+        .tooltip("AISLtalk — SL 无感翻译")
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id.as_ref() {
@@ -150,7 +198,9 @@ pub fn run() {
             get_default_log_dir,
             list_accounts,
             show_main_window,
-            toggle_topmost
+            toggle_topmost,
+            append_translation_history,
+            open_history_folder
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

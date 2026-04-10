@@ -8,7 +8,7 @@ import { API_DEFAULTS } from './utils/constants';
 import {
   Sparkles, Activity, Play, Minus, X,
   Settings, MessageSquareDot, Send, KeyRound,
-  FolderOpen, User, ChevronDown, Pin, PinOff
+  FolderOpen, User, ChevronDown, Pin, PinOff, BookText
 } from 'lucide-vue-next';
 
 // ── 常量 ──────────────────────────────────────────────────────────
@@ -198,6 +198,17 @@ onMounted(async () => {
       model:      settings.value.model,
       targetLang: settings.value.recvLang,
     });
+    
+    // 异步保存到本地历史记录档案中
+    if (reactiveItem.translated.trim()) {
+      invoke('append_translation_history', {
+        source,
+        timestamp: reactiveItem.time,
+        sender,
+        text,
+        translated: reactiveItem.translated
+      }).catch(e => console.error("保存历史记录失败", e));
+    }
   });
 
   // 侦听全局快捷键
@@ -288,6 +299,16 @@ const sendMyMessage = async () => {
     targetLang: settings.value.sendLang,
   });
 
+  if (translatedResult.trim()) {
+    invoke('append_translation_history', {
+      source: activeChatTabId.value,
+      timestamp: item.time,
+      sender: item.sender,
+      text,
+      translated: translatedResult
+    }).catch(e => console.error("保存历史记录失败", e));
+  }
+
   await TauriBridge.copyToClipboard(translatedResult);
 };
 
@@ -304,6 +325,10 @@ const scrollToBottom = () => {
     }
   });
 };
+
+const openHistoryFolder = async () => {
+  await invoke('open_history_folder');
+};
 </script>
 
 <template>
@@ -316,7 +341,7 @@ const scrollToBottom = () => {
     <header class="title-bar" @mousedown="handleDrag">
       <div class="brand">
         <Sparkles :size="15" class="brand-icon" />
-        <span class="brand-name">AITranslate Core</span>
+        <span class="brand-name">AISLtalk</span>
       </div>
 
       <div class="title-actions" @mousedown.stop>
@@ -326,6 +351,11 @@ const scrollToBottom = () => {
         </div>
         <button v-else class="btn-start" @click="startListening">
           <Play :size="12" /> 开启监听
+        </button>
+
+        <!-- 打开历史记录 -->
+        <button class="ctrl-btn" title="查看全部历史记录" @click="openHistoryFolder">
+          <BookText :size="14" />
         </button>
 
         <!-- 设置 -->
