@@ -1,17 +1,23 @@
 pub mod constants;
 pub mod watcher;
 
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
+use tauri::menu::{Menu, MenuItem};
+use tauri::tray::{TrayIconBuilder, TrayIconEvent, MouseButton};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_dialog::DialogExt;
-use tauri_plugin_global_shortcut::{ShortcutState};
+use tauri_plugin_global_shortcut::ShortcutState;
+use tokio::sync::oneshot;
+
+// ── Commands ─────────────────────────────────────────────────────────
 
 #[tauri::command]
 fn start_listen_log(path_override: Option<String>, app: AppHandle) -> Result<String, String> {
     let target_dir = std::path::PathBuf::from(
         path_override.unwrap_or_else(|| constants::GAME_LOG_DIR_WIN.to_string())
     );
-    watcher::LogWatcherService::start_watching(app, target_dir).map(|_| "Started".to_string())
+    watcher::LogWatcherService::start_watching(app, target_dir)
+        .map(|_| "Started".to_string())
 }
 
 #[tauri::command]
@@ -19,20 +25,15 @@ fn copy_to_clipboard(text: String, app: AppHandle) -> Result<(), String> {
     app.clipboard().write_text(text).map_err(|e| e.to_string())
 }
 
-/// 弹出系统文件夹选择对话框（使用 tauri-plugin-dialog 原生 API）
 #[tauri::command]
 async fn open_folder_dialog(app: AppHandle) -> Option<String> {
     use tauri_plugin_dialog::FilePath;
-    use tokio::sync::oneshot;
 
     let (tx, rx) = oneshot::channel::<Option<FilePath>>();
-
     app.dialog()
         .file()
         .set_title("选择 Firestorm 日志目录")
-        .pick_folder(move |result| {
-            let _ = tx.send(result);
-        });
+        .pick_folder(move |result| { let _ = tx.send(result); });
 
     match rx.await {
         Ok(Some(path)) => path.into_path().ok().map(|p| p.to_string_lossy().to_string()),
@@ -40,15 +41,12 @@ async fn open_folder_dialog(app: AppHandle) -> Option<String> {
     }
 }
 
-/// 获取 Firestorm 日志的默认真实路径（解析 %APPDATA%，不是字面字符串）
 #[tauri::command]
 fn get_default_log_dir() -> Option<String> {
-    std::env::var("APPDATA").ok().map(|appdata| {
-        format!("{}\\Firestorm_x64", appdata)
-    })
+    std::env::var("APPDATA").ok()
+        .map(|appdata| format!("{}\\Firestorm_x64", appdata))
 }
 
-/// 扫描日志目录下所有以 _resident 结尾的子文件夹（即 SL 账号文件夹）
 #[tauri::command]
 fn list_accounts(log_dir: String) -> Vec<String> {
     let Ok(entries) = std::fs::read_dir(&log_dir) else { return vec![]; };
@@ -56,14 +54,57 @@ fn list_accounts(log_dir: String) -> Vec<String> {
         .filter_map(|e| e.ok())
         .filter(|e| e.path().is_dir())
         .filter_map(|e| e.file_name().into_string().ok())
-        .filter(|name| {
-            let lower = name.to_lowercase();
-            lower.ends_with("_resident")
-        })
+        .filter(|name| name.to_lowercase().ends_with("_resident"))
         .collect();
     accounts.sort();
     accounts
 }
+
+/// 显示主窗口（托盘点击时调用）
+#[tauri::command]
+fn show_main_window(app: AppHandle) {
+    if let Some(win) = app.get_webview_window("main") {
+        let _ = win.show();
+        let _ = win.set_focus();
+    }
+}
+
+// ── 构建系统托盘 ─────────────────────────────────────────────────────
+
+fn build_tray(app: &tauri::App) -> tauri::Result<()> {
+    let show = MenuItem::with_id(app, "show", "显示窗口", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
+    let menu  = Menu::with_items(app, &[&show, &quit])?;
+
+    TrayIconBuilder::new()
+        .icon(app.default_window_icon().unwrap().clone())
+        .tooltip("AITranslate Core — SL 无感翻译")
+        .menu(&menu)
+        .show_menu_on_left_click(false)
+        .on_menu_event(|app, event| match event.id.as_ref() {
+            "show" => {
+                if let Some(win) = app.get_webview_window("main") {
+                    let _ = win.show();
+                    let _ = win.set_focus();
+                }
+            }
+            "quit" => app.exit(0),
+            _ => {}
+        })
+        .on_tray_icon_event(|tray, event| {
+            if let TrayIconEvent::Click { button: MouseButton::Left, .. } = event {
+                let app = tray.app_handle();
+                if let Some(win) = app.get_webview_window("main") {
+                    let _ = win.show();
+                    let _ = win.set_focus();
+                }
+            }
+        })
+        .build(app)?;
+    Ok(())
+}
+
+// ── 应用入口 ─────────────────────────────────────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -78,13 +119,17 @@ pub fn run() {
                 }
             }
         ).build())
-        .setup(|_app| Ok(()))
+        .setup(|app| {
+            build_tray(app)?;
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             start_listen_log,
             copy_to_clipboard,
             open_folder_dialog,
+            get_default_log_dir,
             list_accounts,
-            get_default_log_dir
+            show_main_window
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

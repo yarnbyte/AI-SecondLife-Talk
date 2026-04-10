@@ -194,7 +194,23 @@ html, body, #app {
 .slide-down-enter-to,
 .slide-down-leave-from { max-height: 65vh; opacity: 1; }
 
-/* ── 聊天列表 ───────────────────────────────────────────────── */
+/* API Key 快速条 */
+.apikey-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px;
+  background: rgba(251, 191, 36, 0.08);
+  border-bottom: 1px solid rgba(251, 191, 36, 0.2);
+  flex-shrink: 0;
+}
+.apikey-icon { color: #fbbf24; flex-shrink: 0; }
+.apikey-hint { font-size: 12px; color: #fbbf24; white-space: nowrap; }
+.apikey-input {
+  flex: 1; background: rgba(0,0,0,.3); border: 1px solid rgba(251,191,36,.3);
+  border-radius: 5px; padding: 4px 8px; color: #fff; font-size: 12px; outline: none;
+}
+.apikey-input:focus { border-color: #fbbf24; }
+
+/* ── 聊天列表 ─────────────────────────────────────────────────── */
 .chat-list {
   flex: 1;
   overflow-y: auto;

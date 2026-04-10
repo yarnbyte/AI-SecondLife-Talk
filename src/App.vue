@@ -19,7 +19,8 @@ const TAB_SETTINGS = 'settings';
 const win = getCurrentWindow();
 const handleDrag     = () => win.startDragging();
 const handleMinimize = () => win.minimize();
-const handleClose    = () => win.close();
+// 关闭 = 隐藏到系统托盘，从托盘右键「退出」才真正结束
+const handleClose    = () => win.hide();
 
 // ── 页面状态 ──────────────────────────────────────────────────────
 const activeTab  = ref(TAB_CHAT);
@@ -37,10 +38,10 @@ const settings = ref({
 });
 const accountList = ref([]);
 
+// 只要有路径和账号就能开监听，apiKey 可以后填
 const settingsValid = computed(() =>
-  settings.value.logDir &&
-  settings.value.account &&
-  settings.value.apiKey
+  Boolean(settings.value.logDir) &&
+  Boolean(settings.value.account)
 );
 
 // ── 聊天状态 ──────────────────────────────────────────────────────
@@ -137,7 +138,7 @@ const refreshAccounts = async () => {
 
 // ── 监听控制 ──────────────────────────────────────────────────────
 const startListening = async () => {
-  if (!settingsValid.value) {
+  if (!settings.value.logDir || !settings.value.account) {
     activeTab.value = TAB_SETTINGS;
     return;
   }
@@ -305,6 +306,19 @@ const scrollToBottom = () => {
 
         </section>
       </Transition>
+
+      <!-- API Key 快速条（开启监听后若未填会提示） -->
+      <div class="apikey-bar" v-if="isListening && !settings.apiKey">
+        <KeyRound :size="13" class="apikey-icon" />
+        <span class="apikey-hint">填写 API Key 才能翻译：</span>
+        <input
+          v-model="settings.apiKey"
+          type="password"
+          class="apikey-input"
+          placeholder="sk-xxxx..."
+          @change="saveSettings"
+        />
+      </div>
 
       <!-- 聊天面板 -->
       <div class="chat-list" ref="chatScrollRef">
