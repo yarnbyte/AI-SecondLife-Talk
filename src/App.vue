@@ -1,25 +1,27 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, nextTick } from 'vue';
 import { TauriBridge } from './services/TauriBridge';
 import { LLMService } from './services/LLMService';
 import { API_DEFAULTS } from './utils/constants';
+import { Settings2, Play, Activity, MessageSquareDot, Send, KeyRound, Sparkles, X } from 'lucide-vue-next';
 
 const isListening = ref(false);
-const chatHistory = ref([]); // 格式: { time: '14:22', sender: 'John', text: 'hi', translated: '你好' }
+// 带有模拟数据的对话以测试效果
+const chatHistory = ref([
+  { time: '12:00', sender: 'System', text: 'Tauri translation core initialized.', translated: 'Tauri 翻译引擎已就绪。' },
+]);
 const inputShow = ref(false);
 const draftText = ref('');
 const apiKey = ref('');
+const inputRef = ref(null);
 
 onMounted(async () => {
-    // 监听后端日志更新
     TauriBridge.onLogUpdate(async (payload) => {
-        // 解析 payload，假设是 "John Resident: Hello"
         if (payload && payload.includes(": ")) {
             const [sender, text] = payload.split(": ");
             const item = { time: new Date().toLocaleTimeString(), sender, text, translated: '' };
             chatHistory.value.push(item);
             
-            // 发起流式翻译
             LLMService.translateStream(text, [], (chunk) => {
                 item.translated += chunk;
             }, {
@@ -28,22 +30,22 @@ onMounted(async () => {
                 model: API_DEFAULTS.MODEL,
                 targetLang: 'Chinese'
             });
+            scrollToBottom();
         }
     });
 
-    // 监听全局快捷键触发
-    TauriBridge.onShortcutTrigger(() => {
+    TauriBridge.onShortcutTrigger(async () => {
         inputShow.value = true;
-        // 注意：实际应当等待 DOM 渲染后聚焦 input 框
+        await nextTick();
+        inputRef.value?.focus();
     });
 });
 
 const startListening = async () => {
     if (!apiKey.value) {
-        alert("为测试演示，请先填入 API Key！");
+        alert("请输入有效的 API Key 以获得最佳体验");
         return;
     }
-    
     try {
         await TauriBridge.startLogWatcher();
         isListening.value = true;
@@ -58,7 +60,6 @@ const sendMyMessage = async () => {
     const mySource = draftText.value;
     let translatedResult = '';
     
-    // 模拟等待翻译
     LLMService.translateStream(mySource, [], (chunk) => {
         translatedResult += chunk;
     }, {
@@ -67,7 +68,6 @@ const sendMyMessage = async () => {
         model: API_DEFAULTS.MODEL,
         targetLang: 'English'
     }).then(async () => {
-        // 完成翻译后自动推入剪贴板
         await TauriBridge.copyToClipboard(translatedResult);
         chatHistory.value.push({
             time: new Date().toLocaleTimeString(),
@@ -77,8 +77,15 @@ const sendMyMessage = async () => {
         });
         inputShow.value = false;
         draftText.value = '';
-        // 可以加上 TDesign 的 Msg 提示：已复制！
+        scrollToBottom();
     });
+};
+
+const scrollToBottom = () => {
+    const list = document.getElementById('chat-scroll-area');
+    if(list) {
+        setTimeout(() => list.scrollTop = list.scrollHeight, 100);
+    }
 };
 
 const closeInput = () => {
@@ -88,41 +95,78 @@ const closeInput = () => {
 </script>
 
 <template>
-  <!-- 这是一个模拟无边框半透明窗体 -->
-  <div class="app-container" data-tauri-drag-region>
-    <div class="header" data-tauri-drag-region>
-        <span>🌟 SL 无感翻译器</span>
-        <button v-if="!isListening" class="start-btn" @click="startListening">启动监听</button>
-        <span v-else class="status-badge">监听中...</span>
-    </div>
+  <div class="glass-app-container" data-tauri-drag-region>
+    
+    <!-- 极光光效装饰 -->
+    <div class="aurora-fx" data-tauri-drag-region></div>
 
-    <!-- API Key 配置区 (测试用) -->
-    <div class="config-bar" v-if="!isListening">
-        <input type="password" v-model="apiKey" placeholder="输入 OpenAI API Key 以运行" />
-    </div>
-
-    <!-- 聊天记录区 -->
-    <div class="chat-list" id="chat-list">
-        <div class="chat-item" v-for="(msg, i) in chatHistory" :key="i">
-            <div class="chat-meta">[{{msg.time}}] <strong>{{msg.sender}}</strong>:</div>
-            <div class="chat-text source">{{msg.text}}</div>
-            <div class="chat-text translate" v-if="msg.translated">{{msg.translated}}</div>
+    <!-- 高级顶栏 -->
+    <header class="header-nav" data-tauri-drag-region>
+        <div class="brand">
+            <Sparkles class="icon highlight-icon" :size="18" />
+            <span class="brand-text">AITranslate Core</span>
         </div>
-    </div>
-
-    <!-- 快捷发送区 (按Ctrl+Space唤起) -->
-    <div class="input-overlay" v-if="inputShow">
-        <div class="input-box">
-            <div class="input-header">发消息 (回车将自动翻译并复制)</div>
-            <input 
-                type="text" 
-                v-model="draftText" 
-                @keyup.enter="sendMyMessage"
-                @keyup.esc="closeInput"
-                placeholder="输入中文..."
-                autofocus 
-            />
+        <div class="actions">
+            <div v-if="isListening" class="status-indicator active">
+                <Activity class="icon pulse" :size="14"/> 监听中
+            </div>
+            <button v-else class="btn-primary" @click="startListening">
+                <Play :size="14" /> 开启监听
+            </button>
         </div>
-    </div>
+    </header>
+
+    <!-- 主对话区域 -->
+    <main class="chat-list" id="chat-scroll-area">
+        <!-- 如果未开启监听，引导用户填写 API -->
+        <div class="auth-card" v-if="!isListening">
+             <div class="auth-icon-wrap"><KeyRound :size="32" class="text-white opacity-80" /></div>
+             <h3 class="auth-title">引擎待激活</h3>
+             <p class="auth-desc">请输入您的 OpenAI / 模型 API Key，唤醒 AI 翻译核心。</p>
+             <div class="auth-input-group">
+                 <input type="password" v-model="apiKey" placeholder="sk-xxxx..." class="premium-input" />
+             </div>
+        </div>
+
+        <!-- 对话流渲染 -->
+        <div class="chat-wrapper" v-for="(msg, i) in chatHistory" :key="i">
+            <div class="message-group" :class="{'self-msg': msg.sender === 'Me'}">
+                <div class="message-meta">
+                    <span class="time">{{msg.time}}</span>
+                    <span class="sender">{{msg.sender}}</span>
+                </div>
+                <div class="message-bubble">
+                    <div class="source-text">{{msg.text}}</div>
+                    <div class="translate-text" v-if="msg.translated">{{msg.translated}}</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 快捷调出的控制台/输入悬浮层 -->
+    <Transition name="fade">
+        <div class="quick-input-overlay" v-if="inputShow">
+            <div class="terminal-box">
+                <div class="terminal-header">
+                    <div class="th-left"><MessageSquareDot :size="14" /> 快速回复中转 (输入后自动复制)</div>
+                    <button class="icon-btn" @click="closeInput"><X :size="16"/></button>
+                </div>
+                <div class="terminal-body">
+                    <input 
+                        ref="inputRef"
+                        type="text" 
+                        class="terminal-input"
+                        v-model="draftText" 
+                        @keyup.enter="sendMyMessage"
+                        @keyup.esc="closeInput"
+                        placeholder="[中 -> 英] 开始输入..."
+                    />
+                    <button class="send-btn" @click="sendMyMessage">
+                        <Send :size="14" />
+                    </button>
+                </div>
+            </div>
+        </div>
+    </Transition>
   </div>
 </template>
