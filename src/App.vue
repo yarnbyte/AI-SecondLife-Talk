@@ -47,6 +47,7 @@ const settings = ref({
   blacklist:  [],
   lslEnabled: false,
   lslPort:    7001,
+  lslPublicUrl: '',
 });
 const accountList = ref([]);
 const errorMessage = ref('');
@@ -222,42 +223,52 @@ const toggleLslServer = async () => {
   saveSettings();
 };
 
-const LSL_SCRIPT_TEMPLATE = (serverUrl) => `// AISLtalk Nearby Chat HUD by AISLtalk
-// 将 SERVER_URL 改为你的公网 IP 地址
+const LSL_SCRIPT_TEMPLATE = (serverUrl) => `// AISLtalk Nearby Chat HUD
+// 采用最高鲁棒性的 llJsonSetValue 构建 JSON，防止特殊符号断链
 string SERVER_URL = "${serverUrl}";
 integer LISTEN_HANDLE;
-
-string sanitize(string s) {
-    list parts = llParseString2List(s, ["\\\\"], []);
-    s = llDumpList2String(parts, "\\\\\\\\");
-    parts = llParseString2List(s, ["\""], []);
-    s = llDumpList2String(parts, "\\\\\"");
-    return s;
-}
 
 default {
     state_entry() {
         LISTEN_HANDLE = llListen(0, "", NULL_KEY, "");
-        llOwnerSay("[AISLtalk HUD] 已开始监听附近频道");
+        llOwnerSay("[AISLtalk] 已开启附近频道监听，当前上报地址：\\n" + SERVER_URL);
     }
     listen(integer channel, string name, key id, string message) {
-        if (id == llGetOwner()) return; // 不发送自己的消息
-        string payload = "{\"<<"sender">>\":\"" + sanitize(name) + "\",\"<<"text">>\":\"" + sanitize(message) + "\"}"; 
-        llHTTPRequest(SERVER_URL, [HTTP_METHOD, "POST", HTTP_MIMETYPE, "application/json"], payload);
+        if (id == llGetOwner()) return; // 略过自身消息
+        
+        string payload = llJsonSetValue("", ["sender"], name);
+        payload = llJsonSetValue(payload, ["text"], message);
+        
+        // 发送 POST，增加 ngrok-skip-browser-warning 特殊头绕过内网穿透的警告拦截页
+        llHTTPRequest(SERVER_URL, [
+            HTTP_METHOD, "POST", 
+            HTTP_MIMETYPE, "application/json",
+            HTTP_CUSTOM_HEADER, "ngrok-skip-browser-warning", "1"
+        ], payload);
     }
     http_response(key id, integer status, list meta, string body) {}
     on_rez(integer p) { llResetScript(); }
 }`;
 
 const copyLslScript = async () => {
-  const url = lslServerAddr.value
-    ? `http://${lslServerAddr.value}/chat`
-    : `http://你的公网IP:${settings.value.lslPort}/chat`;
-  const script = LSL_SCRIPT_TEMPLATE(url)
-    .replace(/<<"sender">>/g, 'sender')
-    .replace(/<<"text">>/g, 'text');
+  let url = settings.value.lslPublicUrl.trim();
+  if (!url) {
+    url = lslServerAddr.value
+      ? `http://${lslServerAddr.value}/chat`
+      : `http://你的公网IP:${settings.value.lslPort}/chat`;
+  } else {
+    // 智能补全 http /chat 后缀
+    if (!url.endsWith('/chat')) {
+      url = url.endsWith('/') ? url + 'chat' : url + '/chat';
+    }
+    if (!url.startsWith('http')) {
+      url = 'http://' + url;
+    }
+  }
+  
+  const script = LSL_SCRIPT_TEMPLATE(url);
   await navigator.clipboard.writeText(script);
-  alert('✅ LSL 脚本已复制到剪贴板，请在 LSL 编辑器中粘贴！');
+  alert('✅ LSL 脚本已复制到剪贴板，请在 SL 脚本编辑器中全选粘贴！');
 };
 
 
@@ -674,13 +685,22 @@ const openHistoryFolder = async () => {
 
             <div v-if="settings.lslEnabled" class="lsl-config">
               <div class="input-row" style="margin-top: 8px;">
-                <input v-model.number="settings.lslPort" type="number" class="form-input" style="width: 90px;" />
+                <input v-model.number="settings.lslPort" type="number" class="form-input" style="width: 90px;" placeholder="监听端口" />
                 <button class="btn-browse" @click="startLslServer">重启服务</button>
               </div>
 
-              <div v-if="lslServerAddr" class="lsl-addr-box">
-                <span class="lsl-addr-label">你的 HUD 地址：</span>
-                <code class="lsl-addr">http://{{ lslServerAddr }}/chat</code>
+              <div class="input-row" style="margin-top: 8px;">
+                <input
+                  v-model="settings.lslPublicUrl"
+                  class="form-input"
+                  placeholder="可填例如 https://xxx.ngrok-free.dev (未填则默认局域网IP)"
+                  @change="saveSettings"
+                />
+              </div>
+
+              <div v-if="lslServerAddr && !settings.lslPublicUrl" class="lsl-addr-box">
+                <span class="lsl-addr-label">局域网原地址：</span>
+                <code class="lsl-addr">http://{{ lslServerAddr }}:{{ settings.lslPort }}</code>
               </div>
 
               <div class="lsl-hint">
