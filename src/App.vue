@@ -42,6 +42,7 @@ const settings = ref({
   recvLang:   'Simplified Chinese', // 别人发来的翻译成什么
   sendLang:   'English',            // 我发出的文本翻译成什么
   contextCount: 5,
+  translateGroup: false,            // 默认屏蔽带有group字样的文件
 });
 const accountList = ref([]);
 const errorMessage = ref('');
@@ -149,6 +150,11 @@ onMounted(async () => {
     await refreshAccounts();
   }
 
+  // 自动开启监听逻辑（当存在合法设置时）
+  if (settingsValid.value) {
+    startListening();
+  }
+
   // 加载上一次保留的 UI VDOM 会话状态
   try {
     const savedState = await invoke('load_ui_state');
@@ -210,8 +216,16 @@ onMounted(async () => {
     // 跳过翻译我自己发出的记录（防止在公屏呈现重复死循环）
     const accountBaseName = settings.value.account ? settings.value.account.split('_')[0].toLowerCase() : '---';
     const isMySelf = sender.toLowerCase().includes(accountBaseName) || sender.toLowerCase() === 'me';
-    if (isMySelf) {
-      return; // 只渲染上屏，不触发翻译
+    
+    // 跳过 SL 平台发出的系统级连线提示
+    const isSystemMessage = sender === 'Second Life' || sender.toLowerCase().includes('second life');
+    
+    // 跳过屏蔽的群组
+    const isGroupFile = source.toLowerCase().includes('group');
+    const skipGroupMessage = isGroupFile && !settings.value.translateGroup;
+
+    if (isMySelf || isSystemMessage || skipGroupMessage) {
+      return; // 只渲染上屏作历史对照，不触发调用 LLM
     }
 
     // 组织上文（将同一个对话频道里的前面 N 句当做参考喂给AI以保持连贯！）
@@ -487,6 +501,13 @@ const openHistoryFolder = async () => {
           <div class="form-section">
             <label class="form-label">翻译参考上文的条数（默认 5 条，填 0 关闭）</label>
             <input v-model.number="settings.contextCount" type="number" class="form-input" placeholder="5" />
+          </div>
+
+          <div class="form-section">
+            <label class="form-label">
+              <input type="checkbox" v-model="settings.translateGroup" style="vertical-align: middle; margin-right: 5px;" />
+              开启群聊日志翻译 (带有 group 字样的频道)
+            </label>
           </div>
 
           <button class="btn-save" @click="saveSettings">💾 保存设置</button>
