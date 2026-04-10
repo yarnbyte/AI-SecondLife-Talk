@@ -9,7 +9,7 @@ export class TauriBridge {
      */
     static async startLogWatcher(customPath = null) {
         try {
-            const config = { path_override: customPath };
+            const config = { pathOverride: customPath };
             return await invoke('start_listen_log', config);
         } catch (error) {
             console.error("Failed to start log watcher:", error);
