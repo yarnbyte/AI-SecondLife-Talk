@@ -43,7 +43,9 @@ const settings = ref({
   contextCount: 5,
   translateGroup: false,
   uiLang:     'zh-CN',
-  blacklist:  [],   // 不翻译的用户名列表
+  blacklist:  [],
+  lslEnabled: false,
+  lslPort:    7001,
 });
 const accountList = ref([]);
 const errorMessage = ref('');
@@ -182,8 +184,74 @@ const removeBlacklistEntry = (name) => {
   saveSettings();
 };
 
+// ── LSL 中继服务器 ────────────────────────────────────────────
+const lslServerAddr = ref('');
 
-// ── 初始化 ──────────────────────────────────────────────────────
+const startLslServer = async () => {
+  try {
+    const addr = await invoke('start_lsl_server', { port: settings.value.lslPort });
+    lslServerAddr.value = addr;
+  } catch (e) {
+    // 已在运行则展示已存地址
+    if (String(e).includes('already running')) {
+      lslServerAddr.value = `本机 IP:${settings.value.lslPort}`;
+    }
+  }
+};
+
+const stopLslServer = async () => {
+  await invoke('stop_lsl_server');
+  lslServerAddr.value = '';
+};
+
+const toggleLslServer = async () => {
+  if (settings.value.lslEnabled) {
+    await startLslServer();
+  } else {
+    await stopLslServer();
+  }
+  saveSettings();
+};
+
+const LSL_SCRIPT_TEMPLATE = (serverUrl) => `// AISLtalk Nearby Chat HUD by AISLtalk
+// 将 SERVER_URL 改为你的公网 IP 地址
+string SERVER_URL = "${serverUrl}";
+integer LISTEN_HANDLE;
+
+string sanitize(string s) {
+    list parts = llParseString2List(s, ["\\\\"], []);
+    s = llDumpList2String(parts, "\\\\\\\\");
+    parts = llParseString2List(s, ["\""], []);
+    s = llDumpList2String(parts, "\\\\\"");
+    return s;
+}
+
+default {
+    state_entry() {
+        LISTEN_HANDLE = llListen(0, "", NULL_KEY, "");
+        llOwnerSay("[AISLtalk HUD] 已开始监听附近频道");
+    }
+    listen(integer channel, string name, key id, string message) {
+        if (id == llGetOwner()) return; // 不发送自己的消息
+        string payload = "{\"<<"sender">>\":\"" + sanitize(name) + "\",\"<<"text">>\":\"" + sanitize(message) + "\"}"; 
+        llHTTPRequest(SERVER_URL, [HTTP_METHOD, "POST", HTTP_MIMETYPE, "application/json"], payload);
+    }
+    http_response(key id, integer status, list meta, string body) {}
+    on_rez(integer p) { llResetScript(); }
+}`;
+
+const copyLslScript = async () => {
+  const url = lslServerAddr.value
+    ? `http://${lslServerAddr.value}/chat`
+    : `http://你的公网IP:${settings.value.lslPort}/chat`;
+  const script = LSL_SCRIPT_TEMPLATE(url)
+    .replace(/<<"sender">>/g, 'sender')
+    .replace(/<<"text">>/g, 'text');
+  await navigator.clipboard.writeText(script);
+  alert('✅ LSL 脚本已复制到剪贴板，请在 LSL 编辑器中粘贴！');
+};
+
+
 onMounted(async () => {
   // 读取持久化设置
   const saved = localStorage.getItem('sl-translator-settings');
@@ -220,6 +288,11 @@ onMounted(async () => {
   // 自动开启监听逻辑（当存在合法设置时）
   if (settingsValid.value) {
     startListening();
+  }
+
+  // 如果上次开启了 LSL 中继，自动重启
+  if (settings.value.lslEnabled) {
+    await startLslServer();
   }
 
   // 加载上一次保留的 UI VDOM 会话状态
@@ -608,6 +681,35 @@ const openHistoryFolder = async () => {
               >
                 {{ name }} ×
               </span>
+            </div>
+          </div>
+
+          <div class="form-section lsl-section">
+            <label class="form-label">
+              <input type="checkbox" v-model="settings.lslEnabled" style="vertical-align: middle; margin-right: 5px;" @change="toggleLslServer" />
+              🛸 开启 LSL HUD 公共频道中继
+            </label>
+
+            <div v-if="settings.lslEnabled" class="lsl-config">
+              <div class="input-row" style="margin-top: 8px;">
+                <input v-model.number="settings.lslPort" type="number" class="form-input" style="width: 90px;" />
+                <button class="btn-browse" @click="startLslServer">重启服务</button>
+              </div>
+
+              <div v-if="lslServerAddr" class="lsl-addr-box">
+                <span class="lsl-addr-label">你的 HUD 地址：</span>
+                <code class="lsl-addr">http://{{ lslServerAddr }}/chat</code>
+              </div>
+
+              <div class="lsl-hint">
+                <p>ℹ️ 如何使用：</p>
+                <ol>
+                  <li>将路由器端口 <b>{{ settings.lslPort }}</b> 转发到此电脑</li>
+                  <li>在 SL 中使用以下 LSL 脚本，将 SERVER_URL 改为公网地址</li>
+                  <li>将脚本放入 HUD，佩戴后即可监听附近频道</li>
+                </ol>
+                <button class="btn-browse" style="width:100%; margin-top: 6px;" @click="copyLslScript">📝 复制 LSL 脚本到剪贴板</button>
+              </div>
             </div>
           </div>
 

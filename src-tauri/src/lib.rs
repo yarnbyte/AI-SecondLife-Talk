@@ -1,5 +1,6 @@
 pub mod constants;
 pub mod watcher;
+pub mod lsl_server;
 
 use tauri::{AppHandle, Emitter, Manager};
 use tauri::menu::{Menu, MenuItem};
@@ -152,6 +153,16 @@ fn save_default_i18n(content: String) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+fn start_lsl_server(port: u16, app: AppHandle) -> Result<String, String> {
+    lsl_server::start(port, app)
+}
+
+#[tauri::command]
+fn stop_lsl_server() {
+    lsl_server::stop();
+}
+
 // ── 命令区域 ─────────────────────────────────────────────────────────
 
 #[tauri::command]
@@ -239,7 +250,9 @@ pub fn run() {
             save_ui_state,
             load_ui_state,
             load_custom_i18n,
-            save_default_i18n
+            save_default_i18n,
+            start_lsl_server,
+            stop_lsl_server
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

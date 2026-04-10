@@ -342,7 +342,29 @@ html, body, #app {
   font-size: 11px; cursor: pointer;
   transition: background .15s;
 }
-.blacklist-tag:hover {
-  background: rgba(239, 68, 68, 0.35);
+.blacklist-tag:hover { background: rgba(239, 68, 68, 0.35); }
+
+/* ── LSL 中继区块 ──────────────────────────────────────────── */
+.lsl-section { border-top: 1px solid rgba(99, 102, 241, 0.2); padding-top: 12px; }
+.lsl-config { margin-top: 6px; }
+.lsl-addr-box {
+  margin-top: 8px; padding: 8px 10px;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 6px;
 }
+.lsl-addr-label { font-size: 11px; color: var(--text-muted); }
+.lsl-addr {
+  display: block; margin-top: 3px;
+  font-size: 12px; font-family: monospace;
+  color: #a5b4fc; word-break: break-all;
+}
+.lsl-hint {
+  margin-top: 8px; padding: 8px 10px;
+  background: rgba(0,0,0,0.2); border-radius: 6px;
+  font-size: 11px; color: var(--text-muted);
+}
+.lsl-hint p { margin: 0 0 4px 0; font-weight: 600; color: var(--text-main); }
+.lsl-hint ol { margin: 0; padding-left: 16px; line-height: 1.8; }
+
 
