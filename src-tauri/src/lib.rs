@@ -1,7 +1,7 @@
 pub mod constants;
 pub mod watcher;
 
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Manager, Emitter};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut, ShortcutState};
 
@@ -11,7 +11,7 @@ fn start_listen_log(path_override: Option<String>, app: AppHandle) -> Result<Str
     let target_dir = std::path::PathBuf::from(
         path_override.unwrap_or_else(|| constants::GAME_LOG_DIR_WIN.to_string())
     );
-    watcher::LogWatcherService::start_watching(app, target_dir)
+    watcher::LogWatcherService::start_watching(app, target_dir).map(|_| "Started".to_string())
 }
 
 #[tauri::command]
