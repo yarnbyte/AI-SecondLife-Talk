@@ -524,20 +524,20 @@ const openHistoryFolder = async () => {
     <header class="title-bar" @mousedown="handleDrag">
       <div class="brand">
         <Sparkles :size="15" class="brand-icon" />
-        <span class="brand-name">AISLtalk</span>
+        <span class="brand-name">{{ i18n.appTitle }}</span>
       </div>
 
       <div class="title-actions" @mousedown.stop>
         <!-- 监听状态 -->
         <div v-if="isListening" class="badge-listening">
-          <Activity :size="12" class="pulse" /> 监听中
+          <Activity :size="12" class="pulse" /> {{ i18n.listeningInfo }}
         </div>
         <button v-else class="btn-start" @click="startListening">
-          <Play :size="12" /> 开启监听
+          <Play :size="12" /> {{ i18n.startListening }}
         </button>
 
         <!-- 打开历史记录 -->
-        <button class="ctrl-btn" title="查看全部历史记录" @click="openHistoryFolder">
+        <button class="ctrl-btn" :title="i18n.viewHistory" @click="openHistoryFolder">
           <BookText :size="14" />
         </button>
 
@@ -545,7 +545,7 @@ const openHistoryFolder = async () => {
         <button
           class="ctrl-btn"
           :class="{ active: activeTab === TAB_SETTINGS }"
-          title="设置"
+          :title="i18n.settingTitle"
           @click="activeTab = activeTab === TAB_SETTINGS ? TAB_CHAT : TAB_SETTINGS"
         >
           <Settings :size="14" />
@@ -581,7 +581,7 @@ const openHistoryFolder = async () => {
           </div>
 
           <div class="form-section">
-            <label class="form-label"><FolderOpen :size="13" /> Firestorm 日志目录</label>
+            <label class="form-label"><FolderOpen :size="13" /> {{ i18n.folderLog }}</label>
             <div class="input-row">
               <input
                 v-model="settings.logDir"
@@ -589,26 +589,26 @@ const openHistoryFolder = async () => {
                 placeholder="%AppData%\Firestorm_x64"
                 @change="refreshAccounts"
               />
-              <button class="btn-browse" @click="browseLogDir">浏览</button>
+              <button class="btn-browse" @click="browseLogDir">{{ i18n.browseLabel }}</button>
             </div>
           </div>
 
           <div class="form-section">
-            <label class="form-label"><User :size="13" /> SL 账号</label>
+            <label class="form-label"><User :size="13" /> {{ i18n.slAccount }}</label>
             <div class="select-wrap">
               <select v-model="settings.account" class="form-select">
-                <option value="" disabled>-- 选择账号文件夹 --</option>
+                <option value="" disabled>{{ i18n.slAccountDropTip }}</option>
                 <option v-for="acc in accountList" :key="acc" :value="acc">{{ acc }}</option>
               </select>
               <ChevronDown :size="14" class="select-chevron" />
             </div>
             <div class="form-hint" v-if="accountList.length === 0">
-              请先填写日志目录，软件会自动扫描账号列表。
+              {{ i18n.slAccountNoDirHint }}
             </div>
           </div>
 
           <div class="form-section">
-            <label class="form-label"><KeyRound :size="13" /> API Key</label>
+            <label class="form-label"><KeyRound :size="13" /> {{ i18n.apiKeyLabel }}</label>
             <input
               v-model="settings.apiKey"
               type="password"
@@ -618,34 +618,34 @@ const openHistoryFolder = async () => {
           </div>
 
           <div class="form-section">
-            <label class="form-label">Base URL</label>
+            <label class="form-label">{{ i18n.baseUrlLabel }}</label>
             <input v-model="settings.baseUrl" class="form-input" />
           </div>
 
           <div class="form-section">
-            <label class="form-label">模型</label>
+            <label class="form-label">{{ i18n.modelLabel }}</label>
             <input v-model="settings.model" class="form-input" placeholder="gpt-4o-mini" />
           </div>
 
           <div class="form-section">
-            <label class="form-label">将其发来的消息，翻译为：</label>
+            <label class="form-label">{{ i18n.recvLangConfig }}</label>
             <input v-model="settings.recvLang" class="form-input" placeholder="Simplified Chinese / English / etc..." />
           </div>
 
           <div class="form-section">
-            <label class="form-label">翻译参考上文的条数（默认 5 条，填 0 关闭）</label>
+            <label class="form-label">{{ i18n.ctxCountSetting }}</label>
             <input v-model.number="settings.contextCount" type="number" class="form-input" placeholder="5" />
           </div>
 
           <div class="form-section">
             <label class="form-label">
               <input type="checkbox" v-model="settings.translateGroup" style="vertical-align: middle; margin-right: 5px;" />
-              开启群聊日志翻译 (带有 group 字样的频道)
+              {{ i18n.groupCb }}
             </label>
           </div>
 
           <div class="form-section">
-            <label class="form-label">软件界面语言</label>
+            <label class="form-label">{{ i18n.uiLangLabel }}</label>
             <div class="select-wrap">
               <select v-model="settings.uiLang" class="form-select" @change="applyUiLang">
                 <option value="zh-CN">简体中文</option>
@@ -685,7 +685,7 @@ const openHistoryFolder = async () => {
             </div>
           </div>
 
-          <button class="btn-save" @click="saveSettings">💾 保存设置</button>
+          <button class="btn-save" @click="saveSettings">{{ i18n.saveBtn }}</button>
 
         </section>
       </Transition>
@@ -693,7 +693,7 @@ const openHistoryFolder = async () => {
       <!-- API Key 快速条（开启监听后若未填会提示） -->
       <div class="apikey-bar" v-if="isListening && !settings.apiKey">
         <KeyRound :size="13" class="apikey-icon" />
-        <span class="apikey-hint">填写 API Key 才能翻译：</span>
+        <span class="apikey-hint">{{ i18n.apiKeyFloatTip }}</span>
         <input
           v-model="settings.apiKey"
           type="password"
@@ -749,10 +749,10 @@ const openHistoryFolder = async () => {
           ref="inputRef"
           class="inline-input"
           v-model="draftText"
-          placeholder="输入你的母语...回车翻译为对方语言并复制到剪贴板"
+          :placeholder="i18n.inputPlc"
           @keyup.enter="sendMyMessage"
         />
-        <button v-if="!isTargetBlacklisted(activeChatTabId)" class="btn-send-inline" @click="sendMyMessage" title="翻译并复制">
+        <button v-if="!isTargetBlacklisted(activeChatTabId)" class="btn-send-inline" @click="sendMyMessage" title="Translate and copy">
           <Send :size="14" />
         </button>
       </div>
