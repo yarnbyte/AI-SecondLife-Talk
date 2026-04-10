@@ -8,7 +8,7 @@ import { API_DEFAULTS } from './utils/constants';
 import {
   Sparkles, Activity, Play, Minus, X,
   Settings, MessageSquareDot, Send, KeyRound,
-  FolderOpen, User, ChevronDown
+  FolderOpen, User, ChevronDown, Pin, PinOff
 } from 'lucide-vue-next';
 
 // ── 常量 ──────────────────────────────────────────────────────────
@@ -21,6 +21,12 @@ const handleDrag     = () => win.startDragging();
 const handleMinimize = () => win.minimize();
 // 关闭 = 隐藏到系统托盘，从托盘右键「退出」才真正结束
 const handleClose    = () => win.hide();
+
+const isPinned = ref(false);
+const togglePin = async () => {
+  isPinned.value = !isPinned.value;
+  await win.setAlwaysOnTop(isPinned.value);
+};
 
 // ── 页面状态 ──────────────────────────────────────────────────────
 const activeTab  = ref(TAB_CHAT);
@@ -88,12 +94,17 @@ onMounted(async () => {
     const colonIdx = payload.indexOf(': ');
     const sender   = payload.slice(0, colonIdx);
     const text     = payload.slice(colonIdx + 2);
-    const item     = { time: new Date().toLocaleTimeString(), sender, text, translated: '' };
-    chatHistory.value.push(item);
+    const newItem  = { time: new Date().toLocaleTimeString(), sender, text, translated: '' };
+    
+    // 把对象塞入具有 Proxy 深层响应式的数组中
+    chatHistory.value.push(newItem);
+    // 从数组中获取已被 Proxy 劫持的响应式引用，避免直接修改原生对象导致视图不更新！
+    const reactiveItem = chatHistory.value[chatHistory.value.length - 1];
+    
     scrollToBottom();
 
     await LLMService.translateStream(text, [], (chunk) => {
-      item.translated += chunk;
+      reactiveItem.translated += chunk;
     }, {
       apiKey:     settings.value.apiKey,
       baseUrl:    settings.value.baseUrl,
@@ -164,7 +175,6 @@ const sendMyMessage = async () => {
   draftText.value  = '';
   inputShow.value  = false;
 
-  let translatedResult = '';
   const item = {
     time: new Date().toLocaleTimeString(),
     sender: settings.value.account || 'Me',
@@ -172,11 +182,13 @@ const sendMyMessage = async () => {
     translated: ''
   };
   chatHistory.value.push(item);
+  const reactiveItem = chatHistory.value[chatHistory.value.length - 1];
   scrollToBottom();
 
+  let translatedResult = '';
   await LLMService.translateStream(text, [], (chunk) => {
     translatedResult  += chunk;
-    item.translated   += chunk;
+    reactiveItem.translated += chunk;
   }, {
     apiKey:     settings.value.apiKey,
     baseUrl:    settings.value.baseUrl,
@@ -232,6 +244,12 @@ const scrollToBottom = () => {
           @click="activeTab = activeTab === TAB_SETTINGS ? TAB_CHAT : TAB_SETTINGS"
         >
           <Settings :size="14" />
+        </button>
+
+        <!-- 置顶 -->
+        <button class="ctrl-btn ctrl-pin" :class="{ pinned: isPinned }" :title="isPinned ? '取消置顶' : '全局置顶'" @click="togglePin">
+          <Pin v-if="!isPinned" :size="14" />
+          <PinOff v-else :size="14" />
         </button>
 
         <!-- 最小化 -->
