@@ -400,7 +400,7 @@ const scrollToBottom = () => {
 
           <div class="form-section">
             <label class="form-label">目标语言（收到消息翻译为）</label>
-            <input v-model="settings.targetLang" class="form-input" placeholder="Chinese" />
+            <input v-model="settings.targetLang" class="form-input" placeholder="Simplified Chinese" />
           </div>
 
           <div class="form-section">
