@@ -74,11 +74,26 @@ const activeTabMessages = computed(() => {
   return tab ? tab.messages : [];
 });
 
+const visibleTabs = computed(() => {
+  return chatTabs.value.filter(t => !t.hidden);
+});
+
+const persistState = () => {
+  const clone = chatTabs.value.map(t => ({
+    ...t,
+    // 保存最近 100 条防止 JSON 爆满内存
+    messages: t.messages.slice(-100)  
+  }));
+  invoke('save_ui_state', { state: JSON.stringify(clone) }).catch(console.error);
+};
+
 const closeTab = (tabId) => {
-  chatTabs.value = chatTabs.value.filter(t => t.id !== tabId);
+  const tab = chatTabs.value.find(t => t.id === tabId);
+  if (tab) tab.hidden = true;
   if (activeChatTabId.value === tabId) {
     activeChatTabId.value = 'chat.txt';
   }
+  persistState();
 };
 
 const switchTab = (tabId) => {
@@ -134,6 +149,14 @@ onMounted(async () => {
     await refreshAccounts();
   }
 
+  // 加载上一次保留的 UI VDOM 会话状态
+  try {
+    const savedState = await invoke('load_ui_state');
+    if (savedState) {
+      chatTabs.value = JSON.parse(savedState);
+    }
+  } catch(e) {}
+
   let lastMsgHash = '';
   let lastMsgTime = 0;
 
@@ -165,6 +188,8 @@ onMounted(async () => {
       }
       tabInfo = { id: source, title, messages: [], hasUnread: true };
       chatTabs.value.push(tabInfo);
+    } else {
+      tabInfo.hidden = false;
     }
     
     // 标红点
@@ -178,6 +203,8 @@ onMounted(async () => {
     tabInfo.messages.push(newItem);
     const reactiveItem = tabInfo.messages[tabInfo.messages.length - 1];
     
+    persistState();
+
     if (activeChatTabId.value === source) scrollToBottom();
 
     // 跳过翻译我自己发出的记录（防止在公屏呈现重复死循环）
@@ -209,6 +236,7 @@ onMounted(async () => {
         translated: reactiveItem.translated
       }).catch(e => console.error("保存历史记录失败", e));
     }
+    persistState();
   });
 
   // 侦听全局快捷键
@@ -308,6 +336,8 @@ const sendMyMessage = async () => {
       translated: translatedResult
     }).catch(e => console.error("保存历史记录失败", e));
   }
+  
+  persistState();
 
   await TauriBridge.copyToClipboard(translatedResult);
 };
@@ -480,7 +510,7 @@ const openHistoryFolder = async () => {
       <!-- 选项卡展示区 -->
       <div class="chat-tab-bar" v-if="activeTab === TAB_CHAT && isListening">
         <div 
-          v-for="t in chatTabs" 
+          v-for="t in visibleTabs" 
           :key="t.id" 
           class="chat-tab-item" 
           :class="{ active: activeChatTabId === t.id, unread: t.hasUnread }"
