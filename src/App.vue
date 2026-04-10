@@ -52,14 +52,51 @@ const settingsValid = computed(() =>
 );
 
 // ── 聊天状态 ──────────────────────────────────────────────────────
-const chatHistory = ref([
+const chatTabs = ref([
   {
-    time: new Date().toLocaleTimeString(),
-    sender: 'System',
-    text: 'Tauri translation core initialized.',
-    translated: 'Tauri 翻译引擎已就绪。'
+    id: 'chat.txt',
+    title: '附近',
+    messages: [
+      {
+        time: new Date().toLocaleTimeString(),
+        sender: 'System',
+        text: 'Tauri translation core initialized.',
+        translated: 'Tauri 翻译引擎已就绪。'
+      }
+    ],
+    hasUnread: false
   }
 ]);
+const activeChatTabId = ref('chat.txt');
+const activeTabMessages = computed(() => {
+  const tab = chatTabs.value.find(t => t.id === activeChatTabId.value);
+  return tab ? tab.messages : [];
+});
+
+const closeTab = (tabId) => {
+  chatTabs.value = chatTabs.value.filter(t => t.id !== tabId);
+  if (activeChatTabId.value === tabId) {
+    activeChatTabId.value = 'chat.txt';
+  }
+};
+
+const switchTab = (tabId) => {
+  activeChatTabId.value = tabId;
+  const tab = chatTabs.value.find(t => t.id === tabId);
+  if (tab) tab.hasUnread = false;
+  scrollToBottom();
+};
+
+const getHistoryContext = (tabId) => {
+  const tab = chatTabs.value.find(t => t.id === tabId);
+  if (!tab || !settings.value.contextCount) return [];
+  const start = Math.max(0, tab.messages.length - settings.value.contextCount);
+  const lastN = tab.messages.slice(start);
+  return lastN.map(m => ({
+    role: 'system',
+    content: `[Context] ${m.sender}: ${m.text || m.translated}`
+  }));
+};
 const inputShow = ref(false);
 const draftText = ref('');
 const inputRef  = ref(null);
@@ -93,13 +130,16 @@ onMounted(async () => {
 
   // 侦听后端日志推送
   await TauriBridge.onLogUpdate(async (payload) => {
-    if (!payload?.includes(': ')) return;
-    const colonIdx = payload.indexOf(': ');
-    const sender   = payload.slice(0, colonIdx);
-    const text     = payload.slice(colonIdx + 2);
+    const source = payload.source || 'chat.txt';
+    const msgContext = payload.msg;
+
+    if (!msgContext?.includes(': ')) return;
+    const colonIdx = msgContext.indexOf(': ');
+    const sender   = msgContext.slice(0, colonIdx);
+    const text     = msgContext.slice(colonIdx + 2);
     
     // 基础去重（防止 Firestorm 多文件记录同一个消息）
-    const msgHash = `${sender}||${text}`;
+    const msgHash = `${source}||${sender}||${text}`;
     const now = Date.now();
     if (msgHash === lastMsgHash && (now - lastMsgTime) < 2000) {
       return; 
@@ -107,16 +147,34 @@ onMounted(async () => {
     lastMsgHash = msgHash;
     lastMsgTime = now;
 
+    // 定位或创建 Tab
+    let tabInfo = chatTabs.value.find(t => t.id === source);
+    if (!tabInfo) {
+      let title = source.replace(/\.txt$/i, '').replace(/\.log$/i, '');
+      if (source.toLowerCase() === 'conversation.log' || source.toLowerCase() === 'chat.txt') {
+        title = '附近';
+      }
+      tabInfo = { id: source, title, messages: [], hasUnread: true };
+      chatTabs.value.push(tabInfo);
+    }
+    
+    // 标红点
+    if (activeChatTabId.value !== source) {
+      tabInfo.hasUnread = true;
+    }
+
     const newItem  = { time: new Date().toLocaleTimeString(), sender, text, translated: '' };
     
     // 把对象塞入具有 Proxy 深层响应式的数组中
-    chatHistory.value.push(newItem);
-    // 从数组中获取已被 Proxy 劫持的响应式引用，避免直接修改原生对象导致视图不更新！
-    const reactiveItem = chatHistory.value[chatHistory.value.length - 1];
+    tabInfo.messages.push(newItem);
+    const reactiveItem = tabInfo.messages[tabInfo.messages.length - 1];
     
-    scrollToBottom();
+    if (activeChatTabId.value === source) scrollToBottom();
 
-    await LLMService.translateStream(text, [], (chunk) => {
+    // 组织上文（将同一个对话频道里的前面 N 句当做参考喂给AI以保持连贯！）
+    const history = getHistoryContext(source);
+
+    await LLMService.translateStream(text, history, (chunk) => {
       reactiveItem.translated += chunk;
     }, {
       apiKey:     settings.value.apiKey,
@@ -194,12 +252,17 @@ const sendMyMessage = async () => {
     text,
     translated: ''
   };
-  chatHistory.value.push(item);
-  const reactiveItem = chatHistory.value[chatHistory.value.length - 1];
+  const tab = chatTabs.value.find(t => t.id === activeChatTabId.value);
+  if (tab) {
+    tab.messages.push(item);
+  }
+  const reactiveItem = tab ? tab.messages[tab.messages.length - 1] : item;
   scrollToBottom();
 
+  const history = getHistoryContext(activeChatTabId.value);
+
   let translatedResult = '';
-  await LLMService.translateStream(text, [], (chunk) => {
+  await LLMService.translateStream(text, history, (chunk) => {
     translatedResult  += chunk;
     reactiveItem.translated += chunk;
   }, {
@@ -279,6 +342,19 @@ const scrollToBottom = () => {
 
     <!-- ── 主体区 ──────────────────────────────────────────────── -->
     <div class="main-area">
+    
+      <!-- 标签页 -->
+      <div class="chat-tab-bar" v-if="activeTab === TAB_CHAT && isListening">
+        <div 
+          v-for="t in chatTabs" 
+          :key="t.id" 
+          class="chat-tab-item" 
+          :class="{ active: activeChatTabId === t.id, unread: t.hasUnread }"
+          @click="switchTab(t.id)">
+          <span class="tab-title">{{ t.title }}</span>
+          <button class="tab-close" @click.stop="closeTab(t.id)" v-if="t.id !== 'chat.txt' && t.id !== 'conversation.log'"><X :size="10" /></button>
+        </div>
+      </div>
 
       <!-- 设置面板 -->
       <Transition name="slide-down">
@@ -340,6 +416,11 @@ const scrollToBottom = () => {
             <input v-model="settings.targetLang" class="form-input" placeholder="Chinese" />
           </div>
 
+          <div class="form-section">
+            <label class="form-label">翻译参考上文的条数（默认 5 条，填 0 关闭）</label>
+            <input v-model.number="settings.contextCount" type="number" class="form-input" placeholder="5" />
+          </div>
+
           <button class="btn-save" @click="saveSettings">💾 保存设置</button>
 
         </section>
@@ -358,10 +439,23 @@ const scrollToBottom = () => {
         />
       </div>
 
+      <!-- 选项卡展示区 -->
+      <div class="chat-tab-bar" v-if="activeTab === TAB_CHAT && isListening">
+        <div 
+          v-for="t in chatTabs" 
+          :key="t.id" 
+          class="chat-tab-item" 
+          :class="{ active: activeChatTabId === t.id, unread: t.hasUnread }"
+          @click="switchTab(t.id)">
+          <span class="tab-title">{{ t.title }}</span>
+          <button class="tab-close" @click.stop="closeTab(t.id)" v-if="t.id !== 'chat.txt' && t.id !== 'conversation.log'"><X :size="10" /></button>
+        </div>
+      </div>
+
       <!-- 聊天面板 -->
       <div class="chat-list" ref="chatScrollRef">
         <div
-          v-for="(msg, i) in chatHistory"
+          v-for="(msg, i) in activeTabMessages"
           :key="i"
           class="message-group"
           :class="{ 'self-msg': msg.sender === (settings.account || 'Me') }"

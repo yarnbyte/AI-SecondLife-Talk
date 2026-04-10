@@ -80,6 +80,13 @@ impl LogWatcherService {
             // 移动到上次读取的位置
             let _ = file.seek(SeekFrom::Start(current_offset));
             
+use serde::Serialize;
+#[derive(Serialize, Clone)]
+struct LogMessage {
+    source: String,
+    msg: String,
+}
+
             // 使用 read_to_string 保证不管是不是 CRLF 换行都不会导致偏移量计算出错
             let mut read_buf = String::new();
             let mut reader = BufReader::new(file);
@@ -88,7 +95,15 @@ impl LogWatcherService {
             // 以换行为界，把完整内容分发送
             for line in read_buf.lines() {
                 if let Some(msg) = Self::parse_log_line(line) {
-                    let _ = app.emit(EVENT_LOG_UPDATE, msg);
+                    let source_name = path.file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("chat.txt")
+                        .to_string();
+
+                    let _ = app.emit(EVENT_LOG_UPDATE, LogMessage {
+                        source: source_name,
+                        msg,
+                    });
                 }
             }
 
