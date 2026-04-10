@@ -180,6 +180,13 @@ onMounted(async () => {
     
     if (activeChatTabId.value === source) scrollToBottom();
 
+    // 跳过翻译我自己发出的记录（防止在公屏呈现重复死循环）
+    const accountBaseName = settings.value.account ? settings.value.account.split('_')[0].toLowerCase() : '---';
+    const isMySelf = sender.toLowerCase().includes(accountBaseName) || sender.toLowerCase() === 'me';
+    if (isMySelf) {
+      return; // 只渲染上屏，不触发翻译
+    }
+
     // 组织上文（将同一个对话频道里的前面 N 句当做参考喂给AI以保持连贯！）
     const history = getHistoryContext(source);
 

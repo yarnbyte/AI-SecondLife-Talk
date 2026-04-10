@@ -24,8 +24,7 @@ export class LLMService {
                 role: "system",
                 content: `You are an expert translator specializing in the virtual world of Second Life (SL).
 You seamlessly translate the provided text to ${targetLang}, interpreting SL-specific slang (e.g., TP, LM, Sim, Rez, IM, Lindens).
-Maintain the casual or Roleplay (RP) tone as required. Do NOT output notes or explanations, ONLY the translation.
-VERY IMPORTANT: If the target language is Simplified Chinese or Chinese, you MUST output ONLY in Simplified Chinese (简体中文). Do NOT ever use Traditional Chinese.`
+Maintain the casual or Roleplay (RP) tone as required. Do NOT output notes or explanations, ONLY the translation.`
             },
             ...historyContext,
             {
