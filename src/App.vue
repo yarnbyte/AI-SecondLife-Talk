@@ -34,46 +34,71 @@ const isListening = ref(false);
 
 // ── 设置表单 ──────────────────────────────────────────────────────
 const settings = ref({
-  logDir:     '',        // Firestorm 日志根目录
-  account:    '',        // 用户选择的账号文件夹
+  logDir:     '',
+  account:    '',
   apiKey:     '',
   baseUrl:    API_DEFAULTS.BASE_URL,
   model:      API_DEFAULTS.MODEL,
-  recvLang:   'Simplified Chinese', // 别人发来的翻译成什么
+  recvLang:   'Simplified Chinese',
+  sendLang:   'English',
   contextCount: 5,
-  translateGroup: false,            // 默认屏蔽带有group字样的文件
+  translateGroup: false,
+  uiLang:     'zh-CN',
 });
 const accountList = ref([]);
 const errorMessage = ref('');
 
-const i18n = ref({
-  appTitle: "AISLtalk",
-  listeningInfo: "监听中",
-  startListening: "开启监听",
-  viewHistory: "查看全部历史记录",
-  settingTitle: "设置",
-  folderLog: "Firestorm 日志目录",
-  browseLabel: "浏览",
-  slAccount: "SL 账号",
-  slAccountDropTip: "-- 选择账号文件夹 --",
-  slAccountNoDirHint: "请先填写日志目录，软件会自动扫描账号列表。",
-  apiKeyLabel: "API Key",
-  baseUrlLabel: "Base URL",
-  modelLabel: "模型",
-  recvLangConfig: "将其发来的消息，翻译为：",
-  ctxCountSetting: "翻译参考上文的条数（默认 5 条，填 0 关闭）",
-  groupCb: "开启群聊日志翻译 (带有 group 字样的频道)",
-  saveBtn: "💾 保存设置",
-  apiKeyFloatTip: "填写 API Key 才能翻译：",
-  inputPlc: "输入你的母语... 回车即翻译为对方语言并复制到剪贴板...",
-  tabNearby: "附近"
-});
+// ── 内置语言包 ────────────────────────────────────────────────────
+const I18N_BUNDLES = {
+  'zh-CN': {
+    appTitle: "AISLtalk", listeningInfo: "监听中", startListening: "开启监听",
+    viewHistory: "查看历史记录", settingTitle: "设置",
+    folderLog: "Firestorm 日志目录", browseLabel: "浏览",
+    slAccount: "SL 账号", slAccountDropTip: "-- 选择账号文件夹 --",
+    slAccountNoDirHint: "请先填写日志目录，软件会自动扫描账号列表。",
+    apiKeyLabel: "API Key", baseUrlLabel: "Base URL", modelLabel: "模型",
+    recvLangConfig: "将其发来的消息，翻译为：",
+    ctxCountSetting: "翻译参考上文的条数（默认 5 条，填 0 关闭）",
+    groupCb: "开启群聊日志翻译 (带有 group 字样的频道)", uiLangLabel: "软件界面语言",
+    saveBtn: "💾 保存设置", apiKeyFloatTip: "填写 API Key 才能翻译：",
+    inputPlc: "输入你的母语...回车翻译为对方语言并复制到剪贴板"
+  },
+  'en-US': {
+    appTitle: "AISLtalk", listeningInfo: "Listening", startListening: "Start Listening",
+    viewHistory: "View History", settingTitle: "Settings",
+    folderLog: "Firestorm Log Directory", browseLabel: "Browse",
+    slAccount: "SL Account", slAccountDropTip: "-- Select account folder --",
+    slAccountNoDirHint: "Please set the log directory first.",
+    apiKeyLabel: "API Key", baseUrlLabel: "Base URL", modelLabel: "Model",
+    recvLangConfig: "Translate incoming messages to:",
+    ctxCountSetting: "Context lines for translation (0 = disabled):",
+    groupCb: "Enable group chat translation (files containing 'group')", uiLangLabel: "UI Language",
+    saveBtn: "💾 Save Settings", apiKeyFloatTip: "Enter API Key to enable translation:",
+    inputPlc: "Type in your language...Enter to translate & copy to clipboard"
+  }
+};
+
+const i18n = ref({ ...I18N_BUNDLES['zh-CN'] });
+
+const applyUiLang = async () => {
+  const lang = settings.value.uiLang;
+  if (lang === 'custom') {
+    try {
+      const custom = await invoke('load_custom_i18n');
+      if (custom) Object.assign(i18n.value, JSON.parse(custom));
+    } catch(e) {}
+  } else {
+    const bundle = I18N_BUNDLES[lang] || I18N_BUNDLES['zh-CN'];
+    Object.assign(i18n.value, bundle);
+  }
+};
 
 // 只要有路径和账号就能开监听，apiKey 可以后填
 const settingsValid = computed(() =>
   Boolean(settings.value.logDir) &&
   Boolean(settings.value.account)
 );
+
 
 // ── 聊天状态 ──────────────────────────────────────────────────────
 const chatTabs = ref([
@@ -143,13 +168,6 @@ const chatScrollRef = ref(null);
 
 // ── 初始化 ──────────────────────────────────────────────────────
 onMounted(async () => {
-  try {
-    const custom = await invoke('load_custom_i18n');
-    if (custom) Object.assign(i18n.value, JSON.parse(custom));
-  } catch(e) {
-    invoke('save_default_i18n', { content: JSON.stringify(i18n.value, null, 2) }).catch(()=>{});
-  }
-
   // 读取持久化设置
   const saved = localStorage.getItem('sl-translator-settings');
   if (saved) {
@@ -163,6 +181,9 @@ onMounted(async () => {
       Object.assign(settings.value, parsed); 
     } catch (_) {}
   }
+
+  // 启动时应用已保存的界面语言
+  await applyUiLang();
 
   // 如果没有保存的路径，自动解析 %APPDATA%\Firestorm_x64 的真实路径
   if (!settings.value.logDir) {
@@ -214,6 +235,16 @@ onMounted(async () => {
     lastMsgHash = msgHash;
     lastMsgTime = now;
 
+    // ── 层层层屁屁屁局局尿尿尾尾尽尽尼尼尻尻尺尺 登录训练新游被拳版 尺尺尻尻尼尼尽尽尾尾尿尿局局屁屁层层
+    const accountBaseName = settings.value.account ? settings.value.account.split('_')[0].toLowerCase() : '---';
+    const isMySelf = sender.toLowerCase().includes(accountBaseName) || sender.toLowerCase() === 'me';
+    const isSystemMessage = sender.toLowerCase() === 'second life';
+    const isGroupFile = source.toLowerCase().includes('group');
+    const skipGroupMessage = isGroupFile && !settings.value.translateGroup;
+
+    // 系统上下线提示：直接丢弃，不渲染不翻译
+    if (isSystemMessage) return;
+
     // 定位或创建 Tab
     let tabInfo = chatTabs.value.find(t => t.id === source);
     if (!tabInfo) {
@@ -233,29 +264,14 @@ onMounted(async () => {
     }
 
     const newItem  = { time: new Date().toLocaleTimeString(), sender, text, translated: '' };
-    
-    // 把对象塞入具有 Proxy 深层响应式的数组中
     tabInfo.messages.push(newItem);
     const reactiveItem = tabInfo.messages[tabInfo.messages.length - 1];
     
     persistState();
-
     if (activeChatTabId.value === source) scrollToBottom();
 
-    // 跳过翻译我自己发出的记录（防止在公屏呈现重复死循环）
-    const accountBaseName = settings.value.account ? settings.value.account.split('_')[0].toLowerCase() : '---';
-    const isMySelf = sender.toLowerCase().includes(accountBaseName) || sender.toLowerCase() === 'me';
-    
-    // 跳过 SL 平台发出的系统级连线提示
-    const isSystemMessage = sender === 'Second Life' || sender.toLowerCase().includes('second life');
-    
-    // 跳过屏蔽的群组
-    const isGroupFile = source.toLowerCase().includes('group');
-    const skipGroupMessage = isGroupFile && !settings.value.translateGroup;
-
-    if (isMySelf || isSystemMessage || skipGroupMessage) {
-      return; // 只渲染上屏作历史对照，不触发调用 LLM
-    }
+    // 自己发的或被屏蔽的群组：渲染上屏但不翻译
+    if (isMySelf || skipGroupMessage) return;
 
     // 组织上文（将同一个对话频道里的前面 N 句当做参考喂给AI以保持连贯！）
     const history = getHistoryContext(source);
@@ -267,7 +283,6 @@ onMounted(async () => {
       baseUrl:    settings.value.baseUrl,
       model:      settings.value.model,
       targetLang: settings.value.recvLang,
-      direction:  'recv'
     });
     
     // 异步保存到本地历史记录档案中
@@ -368,7 +383,7 @@ const sendMyMessage = async () => {
     apiKey:     settings.value.apiKey,
     baseUrl:    settings.value.baseUrl,
     model:      settings.value.model,
-    direction:  'send'
+    targetLang: settings.value.sendLang,
   });
 
   if (translatedResult.trim()) {
@@ -415,20 +430,20 @@ const openHistoryFolder = async () => {
     <header class="title-bar" @mousedown="handleDrag">
       <div class="brand">
         <Sparkles :size="15" class="brand-icon" />
-        <span class="brand-name">{{ i18n.appTitle }}</span>
+        <span class="brand-name">AISLtalk</span>
       </div>
 
       <div class="title-actions" @mousedown.stop>
         <!-- 监听状态 -->
         <div v-if="isListening" class="badge-listening">
-          <Activity :size="12" class="pulse" /> {{ i18n.listeningInfo }}
+          <Activity :size="12" class="pulse" /> 监听中
         </div>
         <button v-else class="btn-start" @click="startListening">
-          <Play :size="12" /> {{ i18n.startListening }}
+          <Play :size="12" /> 开启监听
         </button>
 
         <!-- 打开历史记录 -->
-        <button class="ctrl-btn" :title="i18n.viewHistory" @click="openHistoryFolder">
+        <button class="ctrl-btn" title="查看全部历史记录" @click="openHistoryFolder">
           <BookText :size="14" />
         </button>
 
@@ -436,7 +451,7 @@ const openHistoryFolder = async () => {
         <button
           class="ctrl-btn"
           :class="{ active: activeTab === TAB_SETTINGS }"
-          :title="i18n.settingTitle"
+          title="设置"
           @click="activeTab = activeTab === TAB_SETTINGS ? TAB_CHAT : TAB_SETTINGS"
         >
           <Settings :size="14" />
@@ -472,7 +487,7 @@ const openHistoryFolder = async () => {
           </div>
 
           <div class="form-section">
-            <label class="form-label"><FolderOpen :size="13" /> {{ i18n.folderLog }}</label>
+            <label class="form-label"><FolderOpen :size="13" /> Firestorm 日志目录</label>
             <div class="input-row">
               <input
                 v-model="settings.logDir"
@@ -480,26 +495,26 @@ const openHistoryFolder = async () => {
                 placeholder="%AppData%\Firestorm_x64"
                 @change="refreshAccounts"
               />
-              <button class="btn-browse" @click="browseLogDir">{{ i18n.browseLabel }}</button>
+              <button class="btn-browse" @click="browseLogDir">浏览</button>
             </div>
           </div>
 
           <div class="form-section">
-            <label class="form-label"><User :size="13" /> {{ i18n.slAccount }}</label>
+            <label class="form-label"><User :size="13" /> SL 账号</label>
             <div class="select-wrap">
               <select v-model="settings.account" class="form-select">
-                <option value="" disabled>{{ i18n.slAccountDropTip }}</option>
+                <option value="" disabled>-- 选择账号文件夹 --</option>
                 <option v-for="acc in accountList" :key="acc" :value="acc">{{ acc }}</option>
               </select>
               <ChevronDown :size="14" class="select-chevron" />
             </div>
             <div class="form-hint" v-if="accountList.length === 0">
-              {{ i18n.slAccountNoDirHint }}
+              请先填写日志目录，软件会自动扫描账号列表。
             </div>
           </div>
 
           <div class="form-section">
-            <label class="form-label"><KeyRound :size="13" /> {{ i18n.apiKeyLabel }}</label>
+            <label class="form-label"><KeyRound :size="13" /> API Key</label>
             <input
               v-model="settings.apiKey"
               type="password"
@@ -509,33 +524,50 @@ const openHistoryFolder = async () => {
           </div>
 
           <div class="form-section">
-            <label class="form-label">{{ i18n.baseUrlLabel }}</label>
+            <label class="form-label">Base URL</label>
             <input v-model="settings.baseUrl" class="form-input" />
           </div>
 
           <div class="form-section">
-            <label class="form-label">{{ i18n.modelLabel }}</label>
+            <label class="form-label">模型</label>
             <input v-model="settings.model" class="form-input" placeholder="gpt-4o-mini" />
           </div>
 
           <div class="form-section">
-            <label class="form-label">{{ i18n.recvLangConfig }}</label>
+            <label class="form-label">将其发来的消息，翻译为：</label>
             <input v-model="settings.recvLang" class="form-input" placeholder="Simplified Chinese / English / etc..." />
           </div>
 
           <div class="form-section">
-            <label class="form-label">{{ i18n.ctxCountSetting }}</label>
+            <label class="form-label">将我发出的内容，翻译为：</label>
+            <input v-model="settings.sendLang" class="form-input" placeholder="English / Spanish / etc..." />
+          </div>
+
+          <div class="form-section">
+            <label class="form-label">翻译参考上文的条数（默认 5 条，填 0 关闭）</label>
             <input v-model.number="settings.contextCount" type="number" class="form-input" placeholder="5" />
           </div>
 
           <div class="form-section">
             <label class="form-label">
               <input type="checkbox" v-model="settings.translateGroup" style="vertical-align: middle; margin-right: 5px;" />
-              {{ i18n.groupCb }}
+              开启群聊日志翻译 (带有 group 字样的频道)
             </label>
           </div>
 
-          <button class="btn-save" @click="saveSettings">{{ i18n.saveBtn }}</button>
+          <div class="form-section">
+            <label class="form-label">软件界面语言</label>
+            <div class="select-wrap">
+              <select v-model="settings.uiLang" class="form-select" @change="applyUiLang">
+                <option value="zh-CN">简体中文</option>
+                <option value="en-US">English</option>
+                <option value="custom">Custom (i18n.json)</option>
+              </select>
+              <ChevronDown :size="14" class="select-chevron" />
+            </div>
+          </div>
+
+          <button class="btn-save" @click="saveSettings">💾 保存设置</button>
 
         </section>
       </Transition>
@@ -584,34 +616,21 @@ const openHistoryFolder = async () => {
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- ── 快捷输入浮层 ──────────────────────────────────────── -->
-    <Transition name="fade">
-      <div class="input-overlay" v-if="inputShow" @click.self="closeInput">
-        <div class="terminal-box">
-          <div class="terminal-header">
-            <div class="th-left">
-              <MessageSquareDot :size="13" /> 中 → 英（回车翻译并复制）
-            </div>
-            <button class="icon-btn" @click="closeInput"><X :size="14" /></button>
-          </div>
-          <div class="terminal-body">
-            <input
-              ref="inputRef"
-              class="terminal-input"
-              v-model="draftText"
-              placeholder="输入中文..."
-              @keyup.enter="sendMyMessage"
-              @keyup.esc="closeInput"
-            />
-            <button class="btn-send" @click="sendMyMessage">
-              <Send :size="14" />
-            </button>
-          </div>
-        </div>
+      <!-- 底部常驻输入栏 -->
+      <div class="bottom-input-area" v-if="activeTab === TAB_CHAT && isListening">
+        <input
+          ref="inputRef"
+          class="inline-input"
+          v-model="draftText"
+          placeholder="输入你的母语...回车翻译为对方语言并复制到剪贴板"
+          @keyup.enter="sendMyMessage"
+        />
+        <button class="btn-send-inline" @click="sendMyMessage" title="翻译并复制">
+          <Send :size="14" />
+        </button>
       </div>
-    </Transition>
 
+    </div>
   </div>
 </template>
