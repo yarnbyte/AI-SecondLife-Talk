@@ -328,3 +328,21 @@ html, body, #app {
 /* ── 通用微动效 ──────────────────────────────────────────────── */
 @keyframes pulseAnim { 0%,100% { opacity: .5; } 50% { opacity: 1; } }
 .pulse { animation: pulseAnim 2s infinite; }
+
+/* ── 黑名单标签 ──────────────────────────────────────────────── */
+.blacklist-tags {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;
+}
+.blacklist-tag {
+  display: inline-flex; align-items: center;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  padding: 3px 10px; border-radius: 20px;
+  font-size: 11px; cursor: pointer;
+  transition: background .15s;
+}
+.blacklist-tag:hover {
+  background: rgba(239, 68, 68, 0.35);
+}
+
