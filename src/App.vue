@@ -114,8 +114,8 @@ const chatTabs = ref([
       {
         time: new Date().toLocaleTimeString(),
         sender: 'System',
-        text: 'Tauri translation core initialized.',
-        translated: 'Tauri 翻译引擎已就绪。'
+        text: 'AI SLtalk translation core initialized.',
+        translated: 'AI SLtalk 翻译引擎已就绪。'
       }
     ],
     hasUnread: false
@@ -147,6 +147,14 @@ const closeTab = (tabId) => {
     activeChatTabId.value = 'chat.txt';
   }
   persistState();
+};
+
+const tabBarRef = ref(null);
+const handleTabScroll = (e) => {
+  if (tabBarRef.value) {
+    // 将鼠标垂直滚动(deltaY)转换为横向滚动，实现标准鼠标顺畅切换
+    tabBarRef.value.scrollLeft += e.deltaY;
+  }
 };
 
 const switchTab = (tabId) => {
@@ -706,7 +714,7 @@ const openHistoryFolder = async () => {
       </div>
 
       <!-- 选项卡展示区 -->
-      <div class="chat-tab-bar" v-if="activeTab === TAB_CHAT && isListening">
+      <div class="chat-tab-bar" v-if="activeTab === TAB_CHAT && isListening" ref="tabBarRef" @wheel.prevent="handleTabScroll">
         <div 
           v-for="t in visibleTabs" 
           :key="t.id" 
