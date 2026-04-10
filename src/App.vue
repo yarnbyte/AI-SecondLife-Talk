@@ -1,181 +1,342 @@
 <script setup>
-import { ref, onMounted, nextTick } from 'vue';
+import { ref, onMounted, nextTick, computed } from 'vue';
+import { getCurrentWindow } from '@tauri-apps/api/window';
+import { invoke } from '@tauri-apps/api/core';
 import { TauriBridge } from './services/TauriBridge';
 import { LLMService } from './services/LLMService';
 import { API_DEFAULTS } from './utils/constants';
-import { Settings2, Play, Activity, MessageSquareDot, Send, KeyRound, Sparkles, X } from 'lucide-vue-next';
-import { getCurrentWindow } from '@tauri-apps/api/window';
+import {
+  Sparkles, Activity, Play, Minus, X,
+  Settings, MessageSquareDot, Send, KeyRound,
+  FolderOpen, User, ChevronDown
+} from 'lucide-vue-next';
 
-const handleDrag = () => {
-    try {
-        getCurrentWindow().startDragging();
-    } catch (e) {
-        console.error("Drag start failed", e);
-    }
-};
+// ── 常量 ──────────────────────────────────────────────────────────
+const TAB_CHAT = 'chat';
+const TAB_SETTINGS = 'settings';
 
+// ── 窗口控制 ──────────────────────────────────────────────────────
+const win = getCurrentWindow();
+const handleDrag     = () => win.startDragging();
+const handleMinimize = () => win.minimize();
+const handleClose    = () => win.close();
+
+// ── 页面状态 ──────────────────────────────────────────────────────
+const activeTab  = ref(TAB_CHAT);
 const isListening = ref(false);
-// 带有模拟数据的对话以测试效果
+
+// ── 设置表单 ──────────────────────────────────────────────────────
+const settings = ref({
+  logDir:     '',        // Firestorm 日志根目录
+  account:    '',        // 用户选择的账号文件夹
+  apiKey:     '',
+  baseUrl:    API_DEFAULTS.BASE_URL,
+  model:      API_DEFAULTS.MODEL,
+  targetLang: 'Chinese',
+  contextCount: 5,
+});
+const accountList = ref([]);
+
+const settingsValid = computed(() =>
+  settings.value.logDir &&
+  settings.value.account &&
+  settings.value.apiKey
+);
+
+// ── 聊天状态 ──────────────────────────────────────────────────────
 const chatHistory = ref([
-  { time: '12:00', sender: 'System', text: 'Tauri translation core initialized.', translated: 'Tauri 翻译引擎已就绪。' },
+  {
+    time: new Date().toLocaleTimeString(),
+    sender: 'System',
+    text: 'Tauri translation core initialized.',
+    translated: 'Tauri 翻译引擎已就绪。'
+  }
 ]);
 const inputShow = ref(false);
 const draftText = ref('');
-const apiKey = ref('');
-const inputRef = ref(null);
+const inputRef  = ref(null);
+const chatScrollRef = ref(null);
 
+// ── 初始化 ──────────────────────────────────────────────────────
 onMounted(async () => {
-    TauriBridge.onLogUpdate(async (payload) => {
-        if (payload && payload.includes(": ")) {
-            const [sender, text] = payload.split(": ");
-            const item = { time: new Date().toLocaleTimeString(), sender, text, translated: '' };
-            chatHistory.value.push(item);
-            
-            LLMService.translateStream(text, [], (chunk) => {
-                item.translated += chunk;
-            }, {
-                apiKey: apiKey.value,
-                baseUrl: API_DEFAULTS.BASE_URL,
-                model: API_DEFAULTS.MODEL,
-                targetLang: 'Chinese'
-            });
-            scrollToBottom();
-        }
-    });
+  // 读取持久化设置
+  const saved = localStorage.getItem('sl-translator-settings');
+  if (saved) {
+    try { Object.assign(settings.value, JSON.parse(saved)); } catch (_) {}
+  }
 
-    TauriBridge.onShortcutTrigger(async () => {
-        inputShow.value = true;
-        await nextTick();
-        inputRef.value?.focus();
+  // 侦听后端日志推送
+  await TauriBridge.onLogUpdate(async (payload) => {
+    if (!payload?.includes(': ')) return;
+    const colonIdx = payload.indexOf(': ');
+    const sender   = payload.slice(0, colonIdx);
+    const text     = payload.slice(colonIdx + 2);
+    const item     = { time: new Date().toLocaleTimeString(), sender, text, translated: '' };
+    chatHistory.value.push(item);
+    scrollToBottom();
+
+    await LLMService.translateStream(text, [], (chunk) => {
+      item.translated += chunk;
+    }, {
+      apiKey:     settings.value.apiKey,
+      baseUrl:    settings.value.baseUrl,
+      model:      settings.value.model,
+      targetLang: settings.value.targetLang,
     });
+  });
+
+  // 侦听全局快捷键
+  await TauriBridge.onShortcutTrigger(async () => {
+    inputShow.value = true;
+    await nextTick();
+    inputRef.value?.focus();
+  });
 });
 
+// ── 设置操作 ──────────────────────────────────────────────────────
+const saveSettings = () => {
+  localStorage.setItem('sl-translator-settings', JSON.stringify(settings.value));
+};
+
+const browseLogDir = async () => {
+  // 调用后端 open_dialog 指令
+  try {
+    const dir = await invoke('open_folder_dialog');
+    if (dir) {
+      settings.value.logDir = dir;
+      await refreshAccounts();
+    }
+  } catch (e) {
+    alert('打开文件夹失败，请手动粘贴路径。\n' + e);
+  }
+};
+
+const refreshAccounts = async () => {
+  if (!settings.value.logDir) return;
+  try {
+    accountList.value = await invoke('list_accounts', { logDir: settings.value.logDir });
+  } catch (e) {
+    accountList.value = [];
+  }
+};
+
+// ── 监听控制 ──────────────────────────────────────────────────────
 const startListening = async () => {
-    if (!apiKey.value) {
-        alert("请输入有效的 API Key 以获得最佳体验");
-        return;
-    }
-    try {
-        await TauriBridge.startLogWatcher();
-        isListening.value = true;
-    } catch(e) {
-        alert("启动失败: " + e);
-    }
+  if (!settingsValid.value) {
+    activeTab.value = TAB_SETTINGS;
+    return;
+  }
+  saveSettings();
+  try {
+    const watchPath = `${settings.value.logDir}\\${settings.value.account}`;
+    await TauriBridge.startLogWatcher(watchPath);
+    isListening.value = true;
+    activeTab.value   = TAB_CHAT;
+  } catch (e) {
+    alert('启动失败: ' + e);
+  }
 };
 
+// ── 快捷回复 ──────────────────────────────────────────────────────
 const sendMyMessage = async () => {
-    if (!draftText.value.trim()) return;
-    
-    const mySource = draftText.value;
-    let translatedResult = '';
-    
-    LLMService.translateStream(mySource, [], (chunk) => {
-        translatedResult += chunk;
-    }, {
-        apiKey: apiKey.value,
-        baseUrl: API_DEFAULTS.BASE_URL,
-        model: API_DEFAULTS.MODEL,
-        targetLang: 'English'
-    }).then(async () => {
-        await TauriBridge.copyToClipboard(translatedResult);
-        chatHistory.value.push({
-            time: new Date().toLocaleTimeString(),
-            sender: 'Me',
-            text: mySource,
-            translated: translatedResult
-        });
-        inputShow.value = false;
-        draftText.value = '';
-        scrollToBottom();
-    });
-};
+  const text = draftText.value.trim();
+  if (!text) return;
 
-const scrollToBottom = () => {
-    const list = document.getElementById('chat-scroll-area');
-    if(list) {
-        setTimeout(() => list.scrollTop = list.scrollHeight, 100);
-    }
+  draftText.value  = '';
+  inputShow.value  = false;
+
+  let translatedResult = '';
+  const item = {
+    time: new Date().toLocaleTimeString(),
+    sender: settings.value.account || 'Me',
+    text,
+    translated: ''
+  };
+  chatHistory.value.push(item);
+  scrollToBottom();
+
+  await LLMService.translateStream(text, [], (chunk) => {
+    translatedResult  += chunk;
+    item.translated   += chunk;
+  }, {
+    apiKey:     settings.value.apiKey,
+    baseUrl:    settings.value.baseUrl,
+    model:      settings.value.model,
+    targetLang: 'English',
+  });
+
+  await TauriBridge.copyToClipboard(translatedResult);
 };
 
 const closeInput = () => {
-    inputShow.value = false;
-    draftText.value = '';
+  inputShow.value = false;
+  draftText.value = '';
+};
+
+// ── 工具 ──────────────────────────────────────────────────────────
+const scrollToBottom = () => {
+  nextTick(() => {
+    if (chatScrollRef.value) {
+      chatScrollRef.value.scrollTop = chatScrollRef.value.scrollHeight;
+    }
+  });
 };
 </script>
 
 <template>
-  <div class="glass-app-container" @mousedown.self="handleDrag">
-    
-    <!-- 极光光效装饰 -->
-    <div class="aurora-fx" @mousedown="handleDrag"></div>
+  <div class="app-root">
 
-    <!-- 高级顶栏 -->
-    <header class="header-nav" @mousedown="handleDrag">
-        <div class="brand">
-            <Sparkles class="icon highlight-icon" :size="18" />
-            <span class="brand-text">AITranslate Core</span>
+    <!-- ── 极光背景装饰 ────────────────────────────────────────── -->
+    <div class="aurora-fx"></div>
+
+    <!-- ── 顶栏 ──────────────────────────────────────────────── -->
+    <header class="title-bar" @mousedown="handleDrag">
+      <div class="brand">
+        <Sparkles :size="15" class="brand-icon" />
+        <span class="brand-name">AITranslate Core</span>
+      </div>
+
+      <div class="title-actions" @mousedown.stop>
+        <!-- 监听状态 -->
+        <div v-if="isListening" class="badge-listening">
+          <Activity :size="12" class="pulse" /> 监听中
         </div>
-        <div class="actions">
-            <div v-if="isListening" class="status-indicator active">
-                <Activity class="icon pulse" :size="14"/> 监听中
-            </div>
-            <button v-else class="btn-primary" @click="startListening">
-                <Play :size="14" /> 开启监听
-            </button>
-        </div>
+        <button v-else class="btn-start" @click="startListening">
+          <Play :size="12" /> 开启监听
+        </button>
+
+        <!-- 设置 -->
+        <button
+          class="ctrl-btn"
+          :class="{ active: activeTab === TAB_SETTINGS }"
+          title="设置"
+          @click="activeTab = activeTab === TAB_SETTINGS ? TAB_CHAT : TAB_SETTINGS"
+        >
+          <Settings :size="14" />
+        </button>
+
+        <!-- 最小化 -->
+        <button class="ctrl-btn" title="最小化" @click="handleMinimize">
+          <Minus :size="14" />
+        </button>
+
+        <!-- 关闭 -->
+        <button class="ctrl-btn ctrl-close" title="关闭" @click="handleClose">
+          <X :size="14" />
+        </button>
+      </div>
     </header>
 
-    <!-- 主对话区域 -->
-    <main class="chat-list" id="chat-scroll-area">
-        <!-- 如果未开启监听，引导用户填写 API -->
-        <div class="auth-card" v-if="!isListening">
-             <div class="auth-icon-wrap"><KeyRound :size="32" class="text-white opacity-80" /></div>
-             <h3 class="auth-title">引擎待激活</h3>
-             <p class="auth-desc">请输入您的 OpenAI / 模型 API Key，唤醒 AI 翻译核心。</p>
-             <div class="auth-input-group">
-                 <input type="password" v-model="apiKey" placeholder="sk-xxxx..." class="premium-input" />
-             </div>
-        </div>
+    <!-- ── 主体区 ──────────────────────────────────────────────── -->
+    <div class="main-area">
 
-        <!-- 对话流渲染 -->
-        <div class="chat-wrapper" v-for="(msg, i) in chatHistory" :key="i">
-            <div class="message-group" :class="{'self-msg': msg.sender === 'Me'}">
-                <div class="message-meta">
-                    <span class="time">{{msg.time}}</span>
-                    <span class="sender">{{msg.sender}}</span>
-                </div>
-                <div class="message-bubble">
-                    <div class="source-text">{{msg.text}}</div>
-                    <div class="translate-text" v-if="msg.translated">{{msg.translated}}</div>
-                </div>
+      <!-- 设置面板 -->
+      <Transition name="slide-down">
+        <section class="settings-panel" v-if="activeTab === TAB_SETTINGS">
+
+          <div class="form-section">
+            <label class="form-label"><FolderOpen :size="13" /> Firestorm 日志目录</label>
+            <div class="input-row">
+              <input
+                v-model="settings.logDir"
+                class="form-input"
+                placeholder="%AppData%\Firestorm_x64"
+                @change="refreshAccounts"
+              />
+              <button class="btn-browse" @click="browseLogDir">浏览</button>
             </div>
-        </div>
-    </main>
+          </div>
 
-    <!-- 快捷调出的控制台/输入悬浮层 -->
+          <div class="form-section">
+            <label class="form-label"><User :size="13" /> SL 账号</label>
+            <div class="select-wrap">
+              <select v-model="settings.account" class="form-select">
+                <option value="" disabled>-- 选择账号文件夹 --</option>
+                <option v-for="acc in accountList" :key="acc" :value="acc">{{ acc }}</option>
+              </select>
+              <ChevronDown :size="14" class="select-chevron" />
+            </div>
+            <div class="form-hint" v-if="accountList.length === 0">
+              请先填写日志目录，软件会自动扫描账号列表。
+            </div>
+          </div>
+
+          <div class="form-section">
+            <label class="form-label"><KeyRound :size="13" /> API Key</label>
+            <input
+              v-model="settings.apiKey"
+              type="password"
+              class="form-input"
+              placeholder="sk-xxxx..."
+            />
+          </div>
+
+          <div class="form-section">
+            <label class="form-label">Base URL</label>
+            <input v-model="settings.baseUrl" class="form-input" />
+          </div>
+
+          <div class="form-section">
+            <label class="form-label">模型</label>
+            <input v-model="settings.model" class="form-input" placeholder="gpt-4o-mini" />
+          </div>
+
+          <div class="form-section">
+            <label class="form-label">目标语言（收到消息翻译为）</label>
+            <input v-model="settings.targetLang" class="form-input" placeholder="Chinese" />
+          </div>
+
+          <button class="btn-save" @click="saveSettings">💾 保存设置</button>
+
+        </section>
+      </Transition>
+
+      <!-- 聊天面板 -->
+      <div class="chat-list" ref="chatScrollRef">
+        <div
+          v-for="(msg, i) in chatHistory"
+          :key="i"
+          class="message-group"
+          :class="{ 'self-msg': msg.sender === (settings.account || 'Me') }"
+        >
+          <div class="message-meta">
+            <span class="msg-sender">{{ msg.sender }}</span>
+            <span class="msg-time">{{ msg.time }}</span>
+          </div>
+          <div class="message-bubble">
+            <div class="source-text">{{ msg.text }}</div>
+            <div class="translate-text" v-if="msg.translated">{{ msg.translated }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 快捷输入浮层 ──────────────────────────────────────── -->
     <Transition name="fade">
-        <div class="quick-input-overlay" v-if="inputShow">
-            <div class="terminal-box">
-                <div class="terminal-header">
-                    <div class="th-left"><MessageSquareDot :size="14" /> 快速回复中转 (输入后自动复制)</div>
-                    <button class="icon-btn" @click="closeInput"><X :size="16"/></button>
-                </div>
-                <div class="terminal-body">
-                    <input 
-                        ref="inputRef"
-                        type="text" 
-                        class="terminal-input"
-                        v-model="draftText" 
-                        @keyup.enter="sendMyMessage"
-                        @keyup.esc="closeInput"
-                        placeholder="[中 -> 英] 开始输入..."
-                    />
-                    <button class="send-btn" @click="sendMyMessage">
-                        <Send :size="14" />
-                    </button>
-                </div>
+      <div class="input-overlay" v-if="inputShow" @click.self="closeInput">
+        <div class="terminal-box">
+          <div class="terminal-header">
+            <div class="th-left">
+              <MessageSquareDot :size="13" /> 中 → 英（回车翻译并复制）
             </div>
+            <button class="icon-btn" @click="closeInput"><X :size="14" /></button>
+          </div>
+          <div class="terminal-body">
+            <input
+              ref="inputRef"
+              class="terminal-input"
+              v-model="draftText"
+              placeholder="输入中文..."
+              @keyup.enter="sendMyMessage"
+              @keyup.esc="closeInput"
+            />
+            <button class="btn-send" @click="sendMyMessage">
+              <Send :size="14" />
+            </button>
+          </div>
         </div>
+      </div>
     </Transition>
+
   </div>
 </template>
