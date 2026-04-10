@@ -8,7 +8,8 @@ import { API_DEFAULTS } from './utils/constants';
 import {
   Sparkles, Activity, Play, Minus, X,
   Settings, MessageSquareDot, Send, KeyRound,
-  FolderOpen, User, ChevronDown, Pin, PinOff, BookText
+  FolderOpen, User, ChevronDown, Pin, PinOff, BookText,
+  Bell, BellOff
 } from 'lucide-vue-next';
 
 // ── 常量 ──────────────────────────────────────────────────────────
@@ -168,7 +169,7 @@ const draftText = ref('');
 const inputRef  = ref(null);
 const chatScrollRef = ref(null);
 
-// ── 黑名单管理 ────────────────────────────────────────────────────
+// ── 黑名单管理 ───────────────────────────────────────────────
 const blacklistInput = ref('');
 const addBlacklistEntry = () => {
   const name = blacklistInput.value.trim();
@@ -181,6 +182,19 @@ const addBlacklistEntry = () => {
 };
 const removeBlacklistEntry = (name) => {
   settings.value.blacklist = settings.value.blacklist.filter(n => n !== name);
+  saveSettings();
+};
+
+const isTargetBlacklisted = (targetId) => {
+  return settings.value.blacklist.some(n => n.toLowerCase() === targetId.toLowerCase());
+};
+
+const toggleBlacklist = (targetId) => {
+  if (isTargetBlacklisted(targetId)) {
+    settings.value.blacklist = settings.value.blacklist.filter(n => n.toLowerCase() !== targetId.toLowerCase());
+  } else {
+    settings.value.blacklist.push(targetId);
+  }
   saveSettings();
 };
 
@@ -360,9 +374,11 @@ onMounted(async () => {
     persistState();
     if (activeChatTabId.value === source) scrollToBottom();
 
-    // 自己发的、群组屏蔽、黑名单用户：渲染上屏但不翻译
+    // 自己发的、群组屏蔽、黑名单用户或频道：渲染上屏但不翻译
     const isBlacklisted = settings.value.blacklist.some(
-      name => name.trim().toLowerCase() === sender.toLowerCase()
+      name => name.trim().toLowerCase() === sender.toLowerCase() || 
+              name.trim().toLowerCase() === source.toLowerCase() || 
+              name.trim().toLowerCase() === tabInfo.title.toLowerCase()
     );
     if (isMySelf || skipGroupMessage || isBlacklisted) return;
 
@@ -632,11 +648,6 @@ const openHistoryFolder = async () => {
           </div>
 
           <div class="form-section">
-            <label class="form-label">将我发出的内容，翻译为：</label>
-            <input v-model="settings.sendLang" class="form-input" placeholder="English / Spanish / etc..." />
-          </div>
-
-          <div class="form-section">
             <label class="form-label">翻译参考上文的条数（默认 5 条，填 0 关闭）</label>
             <input v-model.number="settings.contextCount" type="number" class="form-input" placeholder="5" />
           </div>
@@ -740,6 +751,10 @@ const openHistoryFolder = async () => {
           :class="{ active: activeChatTabId === t.id, unread: t.hasUnread }"
           @click="switchTab(t.id)">
           <span class="tab-title">{{ t.title }}</span>
+          <button class="tab-close tab-ctrl-btn" title="免打扰 (停止翻译此频道)" @click.stop="toggleBlacklist(t.id)">
+            <BellOff v-if="isTargetBlacklisted(t.id)" :size="10" />
+            <Bell v-else :size="10" />
+          </button>
           <button class="tab-close" @click.stop="closeTab(t.id)" v-if="t.id !== 'chat.txt' && t.id !== 'conversation.log'"><X :size="10" /></button>
         </div>
       </div>
@@ -765,14 +780,18 @@ const openHistoryFolder = async () => {
 
       <!-- 底部常驻输入栏 -->
       <div class="bottom-input-area" v-if="activeTab === TAB_CHAT && isListening">
+        <div v-if="isTargetBlacklisted(activeChatTabId)" class="blacklist-overlay-msg">
+          已对该频道静音（不再翻译），您可以点击上方 Tab 中的铃铛图标取消静音。
+        </div>
         <input
+          v-else
           ref="inputRef"
           class="inline-input"
           v-model="draftText"
           placeholder="输入你的母语...回车翻译为对方语言并复制到剪贴板"
           @keyup.enter="sendMyMessage"
         />
-        <button class="btn-send-inline" @click="sendMyMessage" title="翻译并复制">
+        <button v-if="!isTargetBlacklisted(activeChatTabId)" class="btn-send-inline" @click="sendMyMessage" title="翻译并复制">
           <Send :size="14" />
         </button>
       </div>
