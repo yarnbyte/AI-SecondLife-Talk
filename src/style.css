@@ -279,11 +279,30 @@ html, body, #app {
 .msg-time   { font-size: 10px; color: #475569; }
 
 .message-bubble {
+  position: relative;
   padding: 9px 13px;
   background: rgba(255,255,255,.04);
   border: 1px solid rgba(255,255,255,.05);
   border-radius: 3px 13px 13px 13px;
 }
+.msg-copy-btn {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  color: #cbd5e1;
+  padding: 5px;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.message-bubble:hover .msg-copy-btn { opacity: 1; }
+.msg-copy-btn:hover { background: rgba(99,102,241,0.6); color: #fff; }
 .self-msg .message-bubble {
   background: rgba(99,102,241,.12);
   border-color: rgba(99,102,241,.2);

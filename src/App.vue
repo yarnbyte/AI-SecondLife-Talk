@@ -9,7 +9,7 @@ import {
   Sparkles, Activity, Play, Minus, X,
   Settings, MessageSquareDot, Send, KeyRound,
   FolderOpen, User, ChevronDown, Pin, PinOff, BookText,
-  Bell, BellOff
+  Bell, BellOff, Copy
 } from 'lucide-vue-next';
 
 // ── 常量 ──────────────────────────────────────────────────────────
@@ -156,6 +156,13 @@ const handleTabScroll = (e) => {
     // 将鼠标垂直滚动(deltaY)转换为横向滚动，实现标准鼠标顺畅切换
     tabBarRef.value.scrollLeft += e.deltaY;
   }
+};
+
+const copyContent = async (text) => {
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch(e) {}
 };
 
 const switchTab = (tabId) => {
@@ -762,9 +769,12 @@ const openHistoryFolder = async () => {
             <span class="msg-sender">{{ msg.sender }}</span>
             <span class="msg-time">{{ msg.time }}</span>
           </div>
-          <div class="message-bubble">
+          <div class="message-bubble group">
             <div class="source-text">{{ msg.text }}</div>
             <div class="translate-text" v-if="msg.translated && msg.translated.trim() !== msg.text.trim()">{{ msg.translated }}</div>
+            <button class="msg-copy-btn" @click="copyContent(msg.translated || msg.text)" title="复制消息">
+              <Copy :size="12" />
+            </button>
           </div>
         </div>
       </div>
