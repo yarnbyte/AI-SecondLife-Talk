@@ -13,18 +13,26 @@ export class LLMService {
         const baseUrl = config.baseUrl || API_DEFAULTS.BASE_URL;
         const model = config.model || API_DEFAULTS.MODEL;
         const targetLang = config.targetLang || 'English';
+        const isSend = config.direction === 'send';
 
         if (!apiKey) {
             onChunk("[错误] 请先配置 API Key");
             return;
         }
 
+        const systemPrompt = isSend 
+            ? `You are an expert translator specializing in the virtual world of Second Life (SL).
+You seamlessly translate the provided text to match the language predominantly used by the OTHER person in the history context.
+If the context is empty or unclear, translate it to English.
+Interpret SL-specific slang (e.g., TP, LM, Sim, Rez, IM, Lindens). Do NOT output notes or explanations, ONLY the translation.`
+            : `You are an expert translator specializing in the virtual world of Second Life (SL).
+You seamlessly translate the provided text to ${targetLang}, interpreting SL-specific slang (e.g., TP, LM, Sim, Rez, IM, Lindens).
+Maintain the casual or Roleplay (RP) tone as required. Do NOT output notes or explanations, ONLY the translation.`;
+
         const messages = [
             {
                 role: "system",
-                content: `You are an expert translator specializing in the virtual world of Second Life (SL).
-You seamlessly translate the provided text to ${targetLang}, interpreting SL-specific slang (e.g., TP, LM, Sim, Rez, IM, Lindens).
-Maintain the casual or Roleplay (RP) tone as required. Do NOT output notes or explanations, ONLY the translation.`
+                content: systemPrompt
             },
             ...historyContext,
             {

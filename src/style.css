@@ -299,45 +299,31 @@ html, body, #app {
 .fade-enter-active, .fade-leave-active { transition: opacity .18s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 
-.input-overlay {
-  position: absolute; inset: 0;
-  background: rgba(0,0,0,.52);
-  backdrop-filter: blur(4px);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 100;
+.bottom-input-area {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px;
+  background: rgba(15, 23, 42, 0.96);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 -4px 12px rgba(0,0,0,0.4);
 }
-.terminal-box {
-  width: 88%; max-width: 380px;
-  background: rgba(15,23,42,.92);
-  border: 1px solid rgba(99,102,241,.4);
-  border-radius: 12px;
-  box-shadow: 0 20px 50px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.04);
-  overflow: hidden;
+.inline-input {
+  flex: 1; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.06);
+  color: #f1f5f9; font-size: 13px; outline: none;
+  padding: 8px 12px; border-radius: 6px;
+  transition: border-color .2s;
 }
-.terminal-header {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 9px 14px; background: rgba(0,0,0,.35);
-  font-size: 11px; color: var(--text-muted);
-}
-.th-left { display: flex; align-items: center; gap: 6px; }
-.icon-btn { background: none; border: none; color: #475569; cursor: pointer; padding: 2px; }
-.icon-btn:hover { color: var(--text-main); }
+.inline-input:focus { border-color: var(--accent); }
+.inline-input::placeholder { color: #475569; }
 
-.terminal-body { padding: 14px; display: flex; gap: 10px; align-items: center; }
-.terminal-input {
-  flex: 1; background: transparent; border: none;
-  color: #fff; font-size: 14px; outline: none;
-}
-.terminal-input::placeholder { color: #334155; }
-.btn-send {
-  width: 32px; height: 32px;
+.btn-send-inline {
+  width: 32px; height: 32px; margin-left: 10px;
   background: var(--accent); color: #fff;
-  border: none; border-radius: 7px; cursor: pointer;
+  border: none; border-radius: 6px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  transition: transform .15s;
+  flex-shrink: 0; transition: transform .15s, background .2s;
 }
-.btn-send:active { transform: scale(.9); }
+.btn-send-inline:hover { background: #4f46e5; }
+.btn-send-inline:active { transform: scale(.9); }
 
 /* ── 通用微动效 ──────────────────────────────────────────────── */
 @keyframes pulseAnim { 0%,100% { opacity: .5; } 50% { opacity: 1; } }

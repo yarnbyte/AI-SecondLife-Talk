@@ -133,6 +133,25 @@ fn load_ui_state() -> Result<String, String> {
     std::fs::read_to_string(target_file).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn load_custom_i18n() -> Result<String, String> {
+    let appdata = std::env::var("APPDATA").map_err(|e| e.to_string())?;
+    let target_file = format!("{}\\ai_sl_talk\\i18n.json", appdata);
+    std::fs::read_to_string(target_file).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn save_default_i18n(content: String) -> Result<(), String> {
+    let appdata = std::env::var("APPDATA").map_err(|e| e.to_string())?;
+    let target_dir = format!("{}\\ai_sl_talk", appdata);
+    let _ = std::fs::create_dir_all(&target_dir);
+    let target_file = format!("{}\\i18n.json", target_dir);
+    if !std::path::Path::new(&target_file).exists() {
+        let _ = std::fs::write(target_file, content);
+    }
+    Ok(())
+}
+
 // ── 命令区域 ─────────────────────────────────────────────────────────
 
 #[tauri::command]
@@ -218,7 +237,9 @@ pub fn run() {
             append_translation_history,
             open_history_folder,
             save_ui_state,
-            load_ui_state
+            load_ui_state,
+            load_custom_i18n,
+            save_default_i18n
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
