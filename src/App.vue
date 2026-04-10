@@ -342,19 +342,6 @@ const scrollToBottom = () => {
 
     <!-- ── 主体区 ──────────────────────────────────────────────── -->
     <div class="main-area">
-    
-      <!-- 标签页 -->
-      <div class="chat-tab-bar" v-if="activeTab === TAB_CHAT && isListening">
-        <div 
-          v-for="t in chatTabs" 
-          :key="t.id" 
-          class="chat-tab-item" 
-          :class="{ active: activeChatTabId === t.id, unread: t.hasUnread }"
-          @click="switchTab(t.id)">
-          <span class="tab-title">{{ t.title }}</span>
-          <button class="tab-close" @click.stop="closeTab(t.id)" v-if="t.id !== 'chat.txt' && t.id !== 'conversation.log'"><X :size="10" /></button>
-        </div>
-      </div>
 
       <!-- 设置面板 -->
       <Transition name="slide-down">
@@ -466,7 +453,7 @@ const scrollToBottom = () => {
           </div>
           <div class="message-bubble">
             <div class="source-text">{{ msg.text }}</div>
-            <div class="translate-text" v-if="msg.translated">{{ msg.translated }}</div>
+            <div class="translate-text" v-if="msg.translated && msg.translated.trim() !== msg.text.trim()">{{ msg.translated }}</div>
           </div>
         </div>
       </div>

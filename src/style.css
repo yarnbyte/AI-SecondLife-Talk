@@ -120,7 +120,43 @@ html, body, #app {
   position: relative; z-index: 5;
   flex: 1; display: flex; flex-direction: column;
   overflow: hidden;
+  background: rgba(0,0,0,.45);
 }
+
+.chat-tab-bar {
+  display: flex; gap: 4px; padding: 8px 12px 6px;
+  background: rgba(15, 23, 42, 0.6);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  overflow-x: auto; flex-shrink: 0;
+}
+.chat-tab-bar::-webkit-scrollbar { height: 2px; }
+.chat-tab-bar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
+
+.chat-tab-item {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 12px; background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px; font-size: 12px; color: #94a3b8;
+  cursor: pointer; transition: all 0.2s;
+  white-space: nowrap;
+}
+.chat-tab-item:hover { background: rgba(255, 255, 255, 0.08); }
+.chat-tab-item.active {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: rgba(99, 102, 241, 0.4);
+  color: #fff;
+}
+.chat-tab-item.unread { position: relative; }
+.chat-tab-item.unread::after {
+  content: ''; position: absolute; top: 4px; right: 4px;
+  width: 6px; height: 6px; background: #fbbf24; border-radius: 50%;
+}
+.tab-close { 
+  background: none; border: none; color: inherit; 
+  padding: 2px; cursor: pointer; border-radius: 50%; 
+  opacity: 0.6; display: flex; align-items: center; 
+}
+.tab-close:hover { opacity: 1; background: rgba(239, 68, 68, 0.3); color: #ef4444; }
 
 /* ── 设置面板 ───────────────────────────────────────────────── */
 .settings-panel {
