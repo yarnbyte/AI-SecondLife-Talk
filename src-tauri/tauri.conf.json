@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "AI SLtalk",
-        "width": 600,
-        "height": 720,
+        "width": 500,
+        "height": 820,
         "transparent": true,
         "decorations": false,
         "alwaysOnTop": true

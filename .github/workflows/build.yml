@@ -1,0 +1,66 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            args: ''
+            artifact-name: windows
+          - platform: macos-latest
+            args: '--target universal-apple-darwin'
+            artifact-name: macos
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install frontend dependencies
+        run: npm install
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # macOS 不签名，跳过 notarization
+          APPLE_SIGNING_IDENTITY: ''
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'AI SLtalk ${{ github.ref_name }}'
+          releaseBody: |
+            ## AI SLtalk ${{ github.ref_name }}
+
+            ### 下载 / Download
+            - **Windows**: 下载 `.msi` 或 `setup.exe` 安装包
+            - **macOS**: 下载 `.dmg` 文件（通用包，支持 Intel + Apple Silicon）
+            
+            > macOS 用户：首次打开如遇安全阻止，请在"系统设置 → 隐私与安全性"中点击"仍然打开"。
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
