@@ -6,6 +6,10 @@ A non-intrusive, automated AI translation relay and assistant for **Second Life*
 
 *Scroll down for Chinese documentation / 向下滚动查看中文使用教程*
 
+## 📺 Demo / 演示视频
+
+[![Watch the demo](https://img.youtube.com/vi/ZcWLImrTXqo/maxresdefault.jpg)](https://www.youtube.com/watch?v=ZcWLImrTXqo)
+
 ---
 
 ## Features (特性)
