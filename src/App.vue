@@ -170,21 +170,6 @@ const inputRef  = ref(null);
 const chatScrollRef = ref(null);
 
 // ── 黑名单管理 ───────────────────────────────────────────────
-const blacklistInput = ref('');
-const addBlacklistEntry = () => {
-  const name = blacklistInput.value.trim();
-  if (!name) return;
-  if (!settings.value.blacklist.includes(name)) {
-    settings.value.blacklist.push(name);
-    saveSettings();
-  }
-  blacklistInput.value = '';
-};
-const removeBlacklistEntry = (name) => {
-  settings.value.blacklist = settings.value.blacklist.filter(n => n !== name);
-  saveSettings();
-};
-
 const isTargetBlacklisted = (targetId) => {
   return settings.value.blacklist.some(n => n.toLowerCase() === targetId.toLowerCase());
 };
@@ -668,30 +653,6 @@ const openHistoryFolder = async () => {
                 <option value="custom">Custom (i18n.json)</option>
               </select>
               <ChevronDown :size="14" class="select-chevron" />
-            </div>
-          </div>
-
-          <div class="form-section">
-            <label class="form-label">🚫 翻译黑名单（这些用户的消息不翻译）</label>
-            <div class="input-row">
-              <input
-                v-model="blacklistInput"
-                class="form-input"
-                placeholder="输入用户名..."
-                @keyup.enter="addBlacklistEntry"
-              />
-              <button class="btn-browse" @click="addBlacklistEntry">添加</button>
-            </div>
-            <div class="blacklist-tags" v-if="settings.blacklist.length > 0">
-              <span
-                v-for="name in settings.blacklist"
-                :key="name"
-                class="blacklist-tag"
-                @click="removeBlacklistEntry(name)"
-                title="点击删除"
-              >
-                {{ name }} ×
-              </span>
             </div>
           </div>
 
