@@ -46,7 +46,7 @@ const settings = ref({
   uiLang:     'zh-CN',
   blacklist:  [],
   lslEnabled: false,
-  lslPort:    7001,
+  lslPort:    29853,
   lslPublicUrl: '',
 });
 const accountList = ref([]);
@@ -291,6 +291,7 @@ onMounted(async () => {
         delete parsed.targetLang;
       }
       Object.assign(settings.value, parsed); 
+      settings.value.lslPort = 29853; 
     } catch (_) {}
   }
 
@@ -692,8 +693,7 @@ const openHistoryFolder = async () => {
 
             <div v-if="settings.lslEnabled" class="lsl-config">
               <div class="input-row" style="margin-top: 8px;">
-                <input v-model.number="settings.lslPort" type="number" class="form-input" style="width: 90px;" placeholder="监听端口" />
-                <button class="btn-browse" @click="startLslServer">重启服务</button>
+                <button class="btn-browse" style="width: 100%;" @click="startLslServer">🔄 重启中继服务</button>
               </div>
 
               <div class="input-row" style="margin-top: 8px;">
