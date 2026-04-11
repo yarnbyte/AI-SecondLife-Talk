@@ -17,6 +17,15 @@ export class TauriBridge {
         }
     }
 
+    static async stopLogWatcher() {
+        try {
+            return await invoke('stop_listen_log');
+        } catch (error) {
+            console.error("Failed to stop log watcher:", error);
+            throw error;
+        }
+    }
+
     /**
      * 写入剪贴板
      * @param {string} text 

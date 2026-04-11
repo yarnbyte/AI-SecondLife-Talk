@@ -21,6 +21,11 @@ fn start_listen_log(path_override: Option<String>, app: AppHandle) -> Result<Str
 }
 
 #[tauri::command]
+fn stop_listen_log() {
+    watcher::LogWatcherService::stop_watching();
+}
+
+#[tauri::command]
 fn copy_to_clipboard(text: String, app: AppHandle) -> Result<(), String> {
     app.clipboard().write_text(text).map_err(|e| e.to_string())
 }
@@ -228,6 +233,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             start_listen_log,
+            stop_listen_log,
             copy_to_clipboard,
             open_folder_dialog,
             get_default_log_dir,

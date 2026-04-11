@@ -55,7 +55,7 @@ const errorMessage = ref('');
 // ── 内置语言包 ────────────────────────────────────────────────────
 const I18N_BUNDLES = {
   'zh-CN': {
-    appTitle: "AISLtalk", listeningInfo: "监听中", startListening: "开启监听",
+    appTitle: "AISLtalk", listeningInfo: "正在同步", startListening: "启动翻译",
     viewHistory: "查看历史记录", settingTitle: "设置",
     folderLog: "Firestorm 日志目录", browseLabel: "浏览",
     slAccount: "SL 账号", slAccountDropTip: "-- 选择账号文件夹 --",
@@ -63,13 +63,13 @@ const I18N_BUNDLES = {
     apiKeyLabel: "API Key", baseUrlLabel: "Base URL", modelLabel: "模型",
     recvLangConfig: "将其发来的消息，翻译为：",
     ctxCountSetting: "翻译参考上文的条数（默认 5 条，填 0 关闭）",
-    groupCb: "开启群聊日志翻译 (带有 group 字样的频道)", uiLangLabel: "软件界面语言",
+    groupCb: "开启群聊同步及翻译 (带有 group 字样的频道)", uiLangLabel: "软件界面语言",
     saveBtn: "💾 保存设置", apiKeyFloatTip: "填写 API Key 才能翻译：",
     inputPlc: "输入你的母语...回车翻译为对方语言并复制到剪贴板",
     nearbyTab: "附近", tutorialTitle: "使用教程"
   },
   'en-US': {
-    appTitle: "AISLtalk", listeningInfo: "Listening", startListening: "Start Listening",
+    appTitle: "AISLtalk", listeningInfo: "Syncing", startListening: "Start Translator",
     viewHistory: "View History", settingTitle: "Settings",
     folderLog: "Firestorm Log Directory", browseLabel: "Browse",
     slAccount: "SL Account", slAccountDropTip: "-- Select account folder --",
@@ -270,9 +270,9 @@ onMounted(async () => {
     await refreshAccounts();
   }
 
-  // 自动开启监听逻辑（当存在合法设置时）
+  // 自动开启同步逻辑（当存在合法设置时）
   if (settingsValid.value) {
-    startListening();
+    toggleListening();
   }
 
   // 加载上一次保留的 UI VDOM 会话状态
@@ -455,8 +455,19 @@ const testApiConnection = async () => {
   }
 };
 
-const startListening = async () => {
+const toggleListening = async () => {
   errorMessage.value = '';
+  
+  if (isListening.value) {
+    try {
+      await TauriBridge.stopLogWatcher();
+      isListening.value = false;
+    } catch (e) {
+      console.error(e);
+    }
+    return;
+  }
+  
   if (!settings.value.logDir || !settings.value.account) {
     activeTab.value = TAB_SETTINGS;
     errorMessage.value = "请先填写正确的日志目录，并在下拉框中选择你的 SL 账号！\n如果下拉列表为空，请检查日志目录是否正确（必须是 Firestorm_x64 的根目录）。";
@@ -559,11 +570,11 @@ const openHistoryFolder = async () => {
       </div>
 
       <div class="title-actions" @mousedown.stop>
-        <!-- 监听状态 -->
-        <div v-if="isListening" class="badge-listening">
+        <!-- 同步状态 -->
+        <button v-if="isListening" class="badge-listening" @click="toggleListening" style="cursor: pointer;" title="停止同步引擎">
           <Activity :size="12" class="pulse" /> {{ i18n.listeningInfo }}
-        </div>
-        <button v-else class="btn-start" @click="startListening">
+        </button>
+        <button v-else class="btn-start" @click="toggleListening">
           <Play :size="12" /> {{ i18n.startListening }}
         </button>
 

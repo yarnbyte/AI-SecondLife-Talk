@@ -54,21 +54,31 @@ impl LogWatcherService {
                 return;
             }
 
-            // 阻塞等待系统发出的文件修改事件（0 CPU 占用，0 毫秒延迟）
+            // 阻塞等待系统发出的文件修改事件
             loop {
-                match rx.recv() {
+                if !IS_WATCHING.load(Ordering::SeqCst) {
+                    break;
+                }
+
+                match rx.recv_timeout(std::time::Duration::from_millis(500)) {
                     Ok(Ok(event)) => {
                         for path in event.paths {
                             Self::poll_single_file(&path, &offsets, &app_handle);
                         }
                     }
                     Ok(Err(_)) => {},
+                    Err(std::sync::mpsc::RecvTimeoutError::Timeout) => continue,
                     Err(_) => break, // 通道断开则退出线程
                 }
             }
         });
 
         Ok(())
+    }
+
+    /// 停止监听
+    pub fn stop_watching() {
+        IS_WATCHING.store(false, Ordering::SeqCst);
     }
 
     /// 初始化：把目录下所有日志文件的 offset 设置到当前末尾
