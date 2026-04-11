@@ -55,8 +55,6 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # 无 Apple 开发者账号，跳过代码签名
-          APPLE_SIGNING_IDENTITY: ''
           CI: true
         with:
           tagName: ${{ github.ref_name }}
