@@ -669,7 +669,7 @@ const openTutorial = async () => {
                 class="help-icon-btn"
                 :title="i18n.tutorialTitle"
                 @click="openTutorial"
-                style="background:none;border:none;cursor:pointer;padding:0 2px;vertical-align:middle;opacity:0.6;"
+                style="background:none;border:none;cursor:pointer;padding:0 2px;vertical-align:middle;opacity:0.7;color:rgba(255,255,255,0.85);"
               >
                 <HelpCircle :size="13" />
               </button>
