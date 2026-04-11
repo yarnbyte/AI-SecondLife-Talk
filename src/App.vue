@@ -5,6 +5,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { TauriBridge } from './services/TauriBridge';
 import { LLMService } from './services/LLMService';
+import { UpdateService } from './services/UpdateService';
 import { API_DEFAULTS } from './utils/constants';
 import {
   Sparkles, Activity, Play, Minus, X,
@@ -78,7 +79,8 @@ const I18N_BUNDLES = {
     engineStartFail: "引擎启动失败: ",
     settingsIncomplete: "请先填写正确的日志目录，并在下拉框中选择你的 SL 账号！\n如果下拉列表为空，请检查日志目录是否正确。",
     pinTitle: "全局置顶", unpinTitle: "取消置顶",
-    minimizeTitle: "最小化", closeTitle: "关闭"
+    minimizeTitle: "最小化", closeTitle: "关闭",
+    updateAvailable: "发现新版本：v{v}", updateBtn: "前往下载"
   },
   'en-US': {
     appTitle: "AISLtalk", listeningInfo: "Active", startListening: "Start Translator",
@@ -104,11 +106,14 @@ const I18N_BUNDLES = {
     engineStartFail: "Engine failed to start: ",
     settingsIncomplete: "Please set the log directory and select your SL account first.\nIf the dropdown is empty, check that the log directory path is correct.",
     pinTitle: "Always on Top", unpinTitle: "Unpin",
-    minimizeTitle: "Minimize", closeTitle: "Close"
+    minimizeTitle: "Minimize", closeTitle: "Close",
+    updateAvailable: "New version available: v{v}", updateBtn: "Download"
   }
 };
 
 const i18n = ref({ ...I18N_BUNDLES['zh-CN'] });
+const updateAvailable = ref(false);
+const updateInfo = ref(null);
 
 const applyUiLang = async () => {
   const lang = settings.value.uiLang;
@@ -406,6 +411,14 @@ onMounted(async () => {
     await nextTick();
     inputRef.value?.focus();
   });
+
+  // 检查更新
+  UpdateService.checkUpdate().then(info => {
+    if (info && info.hasUpdate) {
+      updateAvailable.value = true;
+      updateInfo.value = info;
+    }
+  });
 });
 
 watch([activeTab, isListening], ([newTab, newListening]) => {
@@ -589,6 +602,13 @@ const openTutorial = async () => {
 
 <template>
   <div class="app-root">
+
+    <div v-if="updateAvailable" class="update-banner">
+      <Sparkles :size="12" style="margin-right: 4px;" />
+      <span>{{ i18n.updateAvailable.replace('{v}', updateInfo.remoteVersion) }}</span>
+      <button class="btn-update" @click="UpdateService.openUpdateUrl(updateInfo.url)">{{ i18n.updateBtn }}</button>
+      <button class="btn-update-close" @click="updateAvailable = false"><X :size="10" /></button>
+    </div>
 
     <!-- ── 极光背景装饰 ────────────────────────────────────────── -->
     <div class="aurora-fx"></div>
