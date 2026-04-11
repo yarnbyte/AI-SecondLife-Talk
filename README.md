@@ -2,9 +2,9 @@
 
 ![AI SLtalk](src-tauri/icons/128x128@2x.png)
 
-> 专为 **Second Life** 打造的 AI 实时翻译助手，底层基于 **Tauri v2 + Vue 3 + Rust** 构建。
+> 专为 **Second Life** 打造的全自动 AI 实时翻译助手，全面支持 **官方客户端 (Official Viewer)** 与 **Firestorm Viewer**。
 >
-> An AI-powered real-time translation assistant for **Second Life**, built with **Tauri v2 + Vue 3 + Rust**.
+> An automated, AI-powered real-time translation assistant for **Second Life**, fully compatible with both the **Official Viewer** and **Firestorm Viewer**.
 
 *[Click here for English documentation](https://github.com/yarnbyte/AI-SecondLife-Talk?tab=readme-ov-file#features-english)*
 
