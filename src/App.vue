@@ -2,7 +2,7 @@
 import { ref, watch, onMounted, nextTick, computed } from 'vue';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
-import { open } from '@tauri-apps/plugin-opener';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { TauriBridge } from './services/TauriBridge';
 import { LLMService } from './services/LLMService';
 import { API_DEFAULTS } from './utils/constants';
@@ -557,7 +557,7 @@ const openHistoryFolder = async () => {
 
 const openTutorial = async () => {
   try {
-    await open('https://github.com/yarnbyte/AI-SecondLife-Talk/blob/main/README.md');
+    await openUrl('https://github.com/yarnbyte/AI-SecondLife-Talk/blob/main/README.md');
   } catch (e) {
     console.error('打开教程链接失败:', e);
   }
