@@ -2,6 +2,7 @@
 import { ref, watch, onMounted, nextTick, computed } from 'vue';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
+import { open } from '@tauri-apps/plugin-opener';
 import { TauriBridge } from './services/TauriBridge';
 import { LLMService } from './services/LLMService';
 import { API_DEFAULTS } from './utils/constants';
@@ -15,7 +16,6 @@ import {
 // ── 常量 ──────────────────────────────────────────────────────────
 const TAB_CHAT = 'chat';
 const TAB_SETTINGS = 'settings';
-const TAB_TUTORIAL = 'tutorial';
 
 // ── 窗口控制 ──────────────────────────────────────────────────────
 const win = getCurrentWindow();
@@ -554,6 +554,14 @@ const scrollToBottom = (smooth = false) => {
 const openHistoryFolder = async () => {
   await invoke('open_history_folder');
 };
+
+const openTutorial = async () => {
+  try {
+    await open('https://github.com/yarnbyte/AI-SecondLife-Talk/blob/main/README.md');
+  } catch (e) {
+    console.error('打开教程链接失败:', e);
+  }
+};
 </script>
 
 <template>
@@ -586,9 +594,8 @@ const openHistoryFolder = async () => {
         <!-- 教程 -->
         <button
           class="ctrl-btn"
-          :class="{ active: activeTab === TAB_TUTORIAL }"
           :title="i18n.tutorialTitle"
-          @click="activeTab = activeTab === TAB_TUTORIAL ? TAB_CHAT : TAB_TUTORIAL"
+          @click="openTutorial"
         >
           <HelpCircle :size="14" />
         </button>
@@ -721,46 +728,6 @@ const openHistoryFolder = async () => {
         </section>
       </Transition>
 
-      <!-- 教程面板 -->
-      <Transition name="slide-down">
-        <section class="settings-panel tutorial-panel" v-if="activeTab === TAB_TUTORIAL" style="overflow-y: auto;">
-          <!-- 中文教程 -->
-          <div v-if="settings.uiLang === 'zh-CN' || settings.uiLang === 'custom'" style="line-height: 1.6; user-select: text;">
-            <h2 style="margin-top:0;">AI SLtalk 使用教程</h2>
-            <p>欢迎使用这套静默响应的 SL 聊天及消息中继与翻译辅助工具。它不需要侵入系统，只需读取 Firestorm 保存的聊天记录文件，或通过 LSL 脚本转发，即可实现顺滑交流。</p>
-
-            <h3>1. 基础配置（本地监听）</h3>
-            <ul style="padding-left:20px; font-size: 0.9em; opacity: 0.9;">
-              <li>输入你的 <b>API Key</b> 与 <b>Base URL</b>。（若只用默认官方 OpenAI 则不用填 Base URL）。</li>
-              <li>点击右上角“开启监听”，当游戏内接收到他人发言（包含附近发言或个人私聊）时系统将自动翻译并呈现在列表中。</li>
-            </ul>
-
-            <h3>2. LSL 公屏中继（免监控日志方式）</h3>
-            <ol style="padding-left:20px; font-size: 0.9em; opacity: 0.9;">
-              <li>下载并在电脑运行 <code>ngrok http 29853</code> 命令，获取一枚映射地址（详见 ngrok.com）。</li>
-              <li>将生成的 <code>https://xxx.ngrok.app</code> 填入应用设置的公网 URL 空白处。</li>
-              <li>点击下方的 <b>“复制 LSL 脚本到剪贴板”</b>。</li>
-              <li>登录 SL 游戏，创建一个基础物品（如方块），添加到你的 HUD 插槽中，新建此脚本并粘贴刚才复制的代码。</li>
-              <li>现在佩戴它，你即可脱离本地日志环境秒取周边的跨文化信息！</li>
-            </ol>
-            <p style="text-align:center; opacity:0.6; margin-top:30px; font-size: 0.8em;">AI SLtalk 2026 - 为高效跨语言环境而生</p>
-          </div>
-
-          <!-- English Tutorial -->
-          <div v-else style="line-height: 1.6; user-select: text;">
-            <h2 style="margin-top:0;">AI SLtalk Tutorial</h2>
-            <p>Welcome! Silently reads Firestorm chat log files to automatically translate all incoming messages from nearby chat and IMs in real time.</p>
-
-            <h3>1. Basic Setup</h3>
-            <ul style="padding-left:20px; font-size: 0.9em; opacity: 0.9;">
-              <li>In Firestorm, go to <b>Preferences → Privacy → Logs &amp; Transcripts</b> and check <b>Save nearby chat transcript</b>.</li>
-              <li>Enter your <b>API Key</b> and <b>Base URL</b>. (Base URL is optional if using official OpenAI servers).</li>
-              <li>Select your SL account in settings, then click <b>Start Listening</b>.</li>
-            </ul>
-            <p style="text-align:center; opacity:0.6; margin-top:30px; font-size: 0.8em;">AI SLtalk 2026 - Designed for seamless intercultural SL experiences</p>
-          </div>
-        </section>
-      </Transition>
 
       <!-- API Key 快速条（开启监听后若未填会提示） -->
       <div class="apikey-bar" v-if="isListening && !settings.apiKey">
