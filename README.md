@@ -2,98 +2,188 @@
 
 ![AI SLtalk](src-tauri/icons/128x128@2x.png)
 
-A non-intrusive, automated AI translation relay and assistant for **Second Life**, built with **Tauri v2** + **Vue 3**.
+> 专为 **Second Life** 打造的 AI 实时翻译助手，底层基于 **Tauri v2 + Vue 3 + Rust** 构建。
+>
+> An AI-powered real-time translation assistant for **Second Life**, built with **Tauri v2 + Vue 3 + Rust**.
 
-*Scroll down for Chinese documentation / 向下滚动查看中文使用教程*
+*Scroll down for English documentation.*
 
-## 📺 Demo / 演示视频
+---
+
+## 📺 演示视频 / Demo
 
 [![Watch the demo](https://img.youtube.com/vi/ZcWLImrTXqo/maxresdefault.jpg)](https://www.youtube.com/watch?v=ZcWLImrTXqo)
 
 ---
 
-## Features (特性)
+## ✨ 核心特性
 
-- **Headless Silence:** Does not require you to paste translated messages heavily into the application manually. Just type, and AI SLtalk automatically translates using state-of-the-art LLMs (like OpenAI/DeepSeek) and copies the result flawlessly into your clipboard.
-- **Two Dual-Mode Operations:**
-  - **Local Game Logs:** Scans your locally stored Firestorm chat logs for complete passiveness and 0 impact on gaming networks.
-  - **High-speed LSL HUD Relay:** Supports fetching instantaneous HUD local chats through Ngrok local POST channels to guarantee lightning-speed nearby conversation coverage without local storage delay!
-- **Anti-Spam & Deduplication Filter:** Actively cleans up duplicate entries commonly blasted by SL game files saving mechanics.
-- **Seamless System Notifications Blacklisting:** Ignore system updates or targeted nearby chatbots with one click.
-- **Dual-language Embedded UI:** Interactive UI and built-in tutorials supporting both English and Simplified Chinese out-of-the-box.
+| 特性 | 说明 |
+|---|---|
+| 🔍 **零侵入日志同步** | 直接读取 Firestorm 自动保存的聊天记录文件，无需改动游戏、无需插件 |
+| 🤖 **兼容任意 OpenAI 格式 API** | 开箱支持 OpenAI、DeepSeek、阿里千问 Qwen、本地 Ollama 等模型 |
+| 💬 **按频道分 Tab 展示** | 附近频道、私聊频道、群聊频道各自独立显示，一目了然 |
+| 📋 **一键翻译发送** | 底部输入框输入母语，回车自动翻译并复制到剪贴板，直接粘贴进 SL 即可 |
+| 🔔 **频道静音黑名单** | 对机器人/系统通知频道单独静音，不影响其他频道正常翻译 |
+| 📌 **全局置顶** | 固定在游戏画面上方，随时查看翻译，不影响操作 |
+| 🌐 **中/英双语界面** | 内置简体中文和英文 UI，支持自定义语言包扩展 |
+| 💾 **翻译历史存档** | 所有翻译记录自动写入本地文件，随时查阅 |
+| 🧠 **上下文感知翻译** | 携带对话历史上文，翻译更贴近语境，减少歧义 |
 
 ---
 
-## 快速使用指南 (中文教程)
+## 🚀 快速上手（中文）
 
-欢迎使用 **AI SLtalk**！这款全自动翻译辅助工具通过静默读取 Firestorm 保存的聊天记录文件，实现对附近频道和私聊的实时翻译。
+### 第一步：配置 Firestorm
 
-### 1. 基础配置
-1. **开启 Firestorm 聊天记录保存**：打开 Firestorm 的 **Preferences → Privacy → Logs & Transcripts**，勾选 **Save nearby chat transcript**。
-2. 获取翻译引擎 API。你需要拥有一个兼容 OpenAI 格式的 API（如 OpenAI 官方、DeepSeek、千问等）：
-   - **Base URL**（例如：`https://api.deepseek.com/v1`）
-   - **API Key**（例如：`sk-xxxxxxx...`）
-   - **模型名称/Model**（例如：`deepseek-chat` 等）
-3. **填写 Firestorm 日志目录**：程序内默认路径通常为 `%AppData%\Firestorm_x64`。
-4. **选择 SL 账号**：在下拉列表中选中你需要翻译的登录账号。
-5. **填写 API 信息**：填入你刚才准备好的 API 数据。
-6. **开启监听**：点击软件顶栏的"▶️ 开启监听"按钮。只要接收到信息（无论是周围环境发言还是他人私聊），都会自动翻译并实时呈现在对应频道列表中；在底部输入框输入中文按回车会自动翻译并复制进剪贴板。
+在 Firestorm 客户端中，前往：
 
-### 2. 公屏 LSL 脚本中继模式（搭配 ngrok）
+**Preferences（首选项）→ Privacy（隐私）→ Logs & Transcripts（日志与记录）**
 
-对于多设备或追求极限极低延迟无丢包的用户，你可以使用公屏实时推流。
+勾选 ✅ **Save nearby chat transcript（保存附近聊天记录）**  
+勾选 ✅ **Log instant messages（记录私信）**
 
-#### 2.1 下载并配置 ngrok
-1. 去 [ngrok.com](https://ngrok.com/) 注册一个免费账号并下载对应系统的 `ngrok.exe`。
-2. 打开 CMD/PowerShell 窗口，绑定鉴权：
-   ```bash
-   ngrok config add-authtoken 你的token码
-   ```
+> ⚠️ **必须开启此选项**，AI SLtalk 才能读取到聊天记录。
 
-#### 2.2 启动内网穿透
-在命令提示符里输入：
+---
+
+### 第二步：准备 AI 翻译 API
+
+你需要一个兼容 **OpenAI Chat API** 格式的服务，推荐以下选项：
+
+| 服务 | Base URL | 特点 |
+|---|---|---|
+| OpenAI 官方 | `https://api.openai.com/v1` | 最稳定，需付费 |
+| DeepSeek | `https://api.deepseek.com/v1` | 性价比高，中文优秀 |
+| 阿里千问 Qwen | `https://dashscope.aliyuncs.com/compatible-mode/v1` | 国内访问快 |
+| 本地 Ollama | `http://localhost:11434/v1` | 完全免费离线 |
+
+你需要准备好：
+- **API Key**（如 `sk-xxxxxxxxxxxxxxxx`）
+- **Base URL**（如 `https://api.deepseek.com/v1`）
+- **模型名称**（如 `deepseek-chat`、`gpt-4o-mini`）
+
+---
+
+### 第三步：软件设置
+
+打开 AI SLtalk，点击右上角 ⚙️ **设置** 图标，填入以下信息：
+
+1. **Firestorm 日志目录**：通常为 `C:\Users\你的用户名\AppData\Roaming\Firestorm_x64`，点击"浏览"按钮可直接选择。
+2. **SL 账号**：从下拉列表中选择你的 SL 登录账号文件夹。
+3. **API Key / Base URL / 模型**：填入上一步准备好的 API 信息，填完后点击 **"测试 API"** 按钮验证是否连通。
+4. **翻译目标语言**：填写你希望将对方消息翻译成的语言（如 `Simplified Chinese`）。
+5. 点击 💾 **保存设置**。
+
+---
+
+### 第四步：启动翻译
+
+点击顶栏的 **▶ 启动翻译** 按钮。
+
+状态指示灯变为 🟢 **工作中** 后，软件即已开始同步 Firestorm 聊天记录：
+
+- **附近频道** / **私聊频道** 的消息会自动按 Tab 分类显示。
+- 每条消息将自动由 AI 翻译，原文与译文同时呈现。
+- 在底部输入框输入你的母语，按 **回车** / 点击发送按钮，即可自动翻译为对方语言并**复制到剪贴板**，粘贴到 SL 发送即可。
+
+---
+
+## 🎛️ 功能详解
+
+### 频道 Tab 管理
+
+- 每个独立的聊天对象或群组对应一个 Tab，点击即可切换。
+- 单个频道点击 🔔 铃铛图标可**静音（免打扰）**，停止该频道的翻译与通知，再次点击恢复。
+- 点击 ❌ 可关闭不需要的 Tab。
+
+### 群聊翻译
+
+默认**关闭**群聊翻译（群聊频道不会显示 Tab）。  
+如需开启，在设置中勾选 **"开启群聊同步及翻译"**，带有 `group` 字样的日志文件将被纳入同步范围。
+
+> ⚠️ 群聊消息量大，开启后 API 消耗会显著增加，请酌情选用。
+
+### 全局置顶
+
+点击 📌 图标将软件固定在所有窗口最上层，方便在游戏全屏时叠加查看翻译。  
+再次点击取消置顶。
+
+### 翻译历史存档
+
+点击右上角 📂 图标，可打开本地翻译历史记录文件夹，所有翻译结果按频道分文件保存。
+
+---
+
+## ❓ 常见问题 FAQ
+
+**Q：自己发出的消息也被翻译了怎么办？**  
+A：点击该频道 Tab 上的 🔔 铃铛图标，将其静音即可屏蔽这个频道的翻译。
+
+**Q：切出游戏后，在软件上滚动很卡顿？**  
+A：正常现象。当软件失去焦点时，操作系统会降低其刷新率以省电。点击一下软件界面重新获得焦点，即可恢复流畅。
+
+**Q：群组频道不显示怎么解决？**  
+A：在 ⚙️ 设置中勾选 **"开启群聊同步及翻译"**，保存后重新启动翻译即可。
+
+**Q：翻译没反应，API 连不上？**  
+A：在设置填好 API Key 和 Base URL 后，点击 **"测试 API"** 按钮，系统会返回连接是否成功及详细报错信息。
+
+**Q：Firestorm 日志目录在哪里？**  
+A：通常路径为 `C:\Users\<你的用户名>\AppData\Roaming\Firestorm_x64`。也可以在 Firestorm 的 Preferences → Privacy → Logs & Transcripts 页面中查看当前保存路径。
+
+---
+
+## 🛠️ 开发者指南
+
+本项目使用 **Tauri v2 + Vue 3 + Rust** 构建，推荐使用 [VS Code](https://code.visualstudio.com/) + Tauri / Rust Analyzer 插件开发。
+
+**环境依赖：**
+- [Node.js](https://nodejs.org/) 18+
+- [Rust](https://rustup.rs/) (MSVC toolchain on Windows)
+- Tauri CLI v2
+
 ```bash
-ngrok http 29853
+# 安装依赖
+npm install
+
+# 启动开发模式
+npm run tauri dev
+
+# 构建发行版
+npm run tauri build
 ```
-将屏幕上生成的 `https://xxx.ngrok.app` 地址复制下来。
-
-#### 2.3 在 AI SLtalk 与 SL 中打通链路
-1. 打开 AI SLtalk 设置页，开启 **🛸 开启 LSL HUD 公共频道中继**。
-2. 将刚刚复制的 **公网网址粘贴在空框内**并保存。
-3. 在 AI SLtalk 设置中点击 **📝 复制 LSL 脚本到剪贴板**。
-4. 登录 SL，新建一个基础物品穿在 HUD 槽位上，往内容中新建 Script 并**将脚本代码全选覆盖粘贴**后保存。
-5. 佩戴该物品，聊天内容会自动秒发至你的翻译器中。
-
-### 3. FAQ 常见问题
-**Q：为什么发送信息会被复制给别人/自己翻译一遍？**
-A：可以直接在频道右上角点击 🔔 铃铛图标将其拉黑静音。
-
-**Q：为什么点击其他窗口后，再在翻译器上滚动会变得很卡顿？**
-A：这是跨平台底层引擎的一种省电优化机制。当软件失去焦点（比如点击了游戏画面）进入后台保护状态时，操作系统会将其屏幕刷新率锁到极低。而软件的半透明玻璃特效比较吃显卡性能，低帧率下强行滚动便会产生“掉帧/卡顿”的错觉，只需点击一下软件界面让你重新获得焦点，即可满血回到 60 帧极度顺滑状态。
-
-**Q：群组记录到底开不开？**
-A：默认关闭群组。开启将消耗大量 API 额度，建议轻度选用。
 
 ---
 
-## Development Setup
+## 📄 开源许可
 
-We recommend utilizing [VS Code](https://code.visualstudio.com/) with Tauri and Rust-analyzer extensions.
+本项目基于 **MIT License** 开源，欢迎 Fork、Star 和 PR。
 
-1. Ensure standard Tauri v2 system prerequisites are fulfilled (Rust, MSVC, Node.js).
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Run Development server:
-   ```bash
-   npm run tauri dev
-   ```
-4. Build Distribution:
-   ```bash
-   npm run tauri build
-   ```
+---
 
-## License
+## Features (English)
 
-This project is licensed under the MIT License.
+| Feature | Description |
+|---|---|
+| 🔍 **Non-intrusive Log Sync** | Reads Firestorm's auto-saved chat log files silently. No game modifications required. |
+| 🤖 **Any OpenAI-compatible API** | Works with OpenAI, DeepSeek, Qwen, local Ollama, and more out of the box. |
+| 💬 **Per-channel Tab View** | Nearby chat, IMs, and group chats are shown in separate tabs. |
+| 📋 **One-click Translate & Send** | Type in your native language, press Enter — auto-translated and copied to clipboard. |
+| 🔔 **Channel Mute / Blacklist** | Silence noisy bot/system channels individually without affecting others. |
+| 📌 **Always-on-top** | Pin the window above your game view for seamless overlay use. |
+| 🌐 **Bilingual UI** | Built-in Simplified Chinese and English interface. Custom language packs supported. |
+| 💾 **Translation Archive** | All translated conversations are saved locally by channel. |
+| 🧠 **Context-aware Translation** | Sends conversation history to the AI for more accurate, natural translations. |
+
+### Quick Start
+
+1. In Firestorm: **Preferences → Privacy → Logs & Transcripts** → enable **Save nearby chat transcript** and **Log instant messages**.
+2. Get an OpenAI-compatible API key (OpenAI, DeepSeek, Qwen, or local Ollama).
+3. Open AI SLtalk → click ⚙️ **Settings** → fill in your Firestorm log directory, SL account, and API credentials → click **Test API** to verify.
+4. Click **▶ Start Translator**. The status badge will show 🟢 **Active** when running.
+5. Incoming messages are auto-translated in real time. Type your message at the bottom and press **Enter** to translate and copy to clipboard.
+
+---
+
+*MIT License · Built with ❤️ for the Second Life community*
