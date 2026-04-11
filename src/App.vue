@@ -57,7 +57,7 @@ const I18N_BUNDLES = {
   'zh-CN': {
     appTitle: "AISLtalk", listeningInfo: "工作中", startListening: "启动翻译",
     viewHistory: "查看历史记录", settingTitle: "设置",
-    folderLog: "Firestorm 日志目录", browseLabel: "浏览",
+    folderLog: "日志目录", browseLabel: "浏览",
     slAccount: "SL 账号", slAccountDropTip: "-- 选择账号文件夹 --",
     slAccountNoDirHint: "请先填写日志目录，软件会自动扫描账号列表。",
     apiKeyLabel: "API Key", baseUrlLabel: "Base URL", modelLabel: "模型",
@@ -83,7 +83,7 @@ const I18N_BUNDLES = {
   'en-US': {
     appTitle: "AISLtalk", listeningInfo: "Active", startListening: "Start Translator",
     viewHistory: "View History", settingTitle: "Settings",
-    folderLog: "Firestorm Log Directory", browseLabel: "Browse",
+    folderLog: "Log Directory", browseLabel: "Browse",
     slAccount: "SL Account", slAccountDropTip: "-- Select account folder --",
     slAccountNoDirHint: "Please set the log directory first.",
     apiKeyLabel: "API Key", baseUrlLabel: "Base URL", modelLabel: "Model",
@@ -663,7 +663,17 @@ const openTutorial = async () => {
           </div>
 
           <div class="form-section">
-            <label class="form-label"><FolderOpen :size="13" /> {{ i18n.folderLog }}</label>
+            <label class="form-label">
+              <FolderOpen :size="13" /> {{ i18n.folderLog }}
+              <button
+                class="help-icon-btn"
+                :title="i18n.tutorialTitle"
+                @click="openTutorial"
+                style="background:none;border:none;cursor:pointer;padding:0 2px;vertical-align:middle;opacity:0.6;"
+              >
+                <HelpCircle :size="13" />
+              </button>
+            </label>
             <div class="input-row">
               <input
                 v-model="settings.logDir"
