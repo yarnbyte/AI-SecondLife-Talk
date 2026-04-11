@@ -60,7 +60,7 @@ const I18N_BUNDLES = {
     folderLog: "Firestorm 日志目录", browseLabel: "浏览",
     slAccount: "SL 账号", slAccountDropTip: "-- 选择账号文件夹 --",
     slAccountNoDirHint: "请先填写日志目录，软件会自动扫描账号列表。",
-    apiKeyLabel: "API Key", baseUrlLabel: "Base URL（需包含 /chat/completions）", modelLabel: "模型",
+    apiKeyLabel: "API Key", baseUrlLabel: "Base URL", modelLabel: "模型",
     recvLangConfig: "将其发来的消息，翻译为：",
     ctxCountSetting: "翻译参考上文的条数（默认 5 条，填 0 关闭）",
     groupCb: "开启群聊日志翻译 (带有 group 字样的频道)", uiLangLabel: "软件界面语言",
@@ -74,7 +74,7 @@ const I18N_BUNDLES = {
     folderLog: "Firestorm Log Directory", browseLabel: "Browse",
     slAccount: "SL Account", slAccountDropTip: "-- Select account folder --",
     slAccountNoDirHint: "Please set the log directory first.",
-    apiKeyLabel: "API Key", baseUrlLabel: "Base URL (include /chat/completions)", modelLabel: "Model",
+    apiKeyLabel: "API Key", baseUrlLabel: "Base URL", modelLabel: "Model",
     recvLangConfig: "Translate incoming messages to:",
     ctxCountSetting: "Context lines for translation (0 = disabled):",
     groupCb: "Enable group chat translation (files containing 'group')", uiLangLabel: "UI Language",
@@ -574,7 +574,7 @@ const openHistoryFolder = async () => {
 
           <div class="form-section">
             <label class="form-label">{{ i18n.baseUrlLabel }}</label>
-            <input v-model="settings.baseUrl" class="form-input" placeholder="https://api.deepseek.com/v1/chat/completions" />
+            <input v-model="settings.baseUrl" class="form-input" placeholder="https://api.deepseek.com/v1" />
           </div>
 
           <div class="form-section">

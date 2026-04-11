@@ -10,7 +10,13 @@ export class LLMService {
      */
     static async translateStream(text, historyContext = [], onChunk, config) {
         const apiKey = config.apiKey;
-        const baseUrl = config.baseUrl || API_DEFAULTS.BASE_URL;
+        let baseUrl = config.baseUrl || API_DEFAULTS.BASE_URL;
+        
+        // 智能补全 /chat/completions，兼容有些用户只填 /v1 的情况
+        if (baseUrl && !baseUrl.includes('/chat/completions')) {
+            baseUrl = baseUrl.replace(/\/+$/, '') + '/chat/completions';
+        }
+
         const model = config.model || API_DEFAULTS.MODEL;
         const targetLang = config.targetLang || 'English';
         const isSend = config.direction === 'send';

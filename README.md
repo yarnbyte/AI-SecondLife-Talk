@@ -31,7 +31,7 @@ A non-intrusive, automated AI translation relay and assistant for **Second Life*
 ### 1. 基础配置
 1. **开启 Firestorm 聊天记录保存**：打开 Firestorm 的 **Preferences → Privacy → Logs & Transcripts**，勾选 **Save nearby chat transcript**。
 2. 获取翻译引擎 API。你需要拥有一个兼容 OpenAI 格式的 API（如 OpenAI 官方、DeepSeek、千问等）：
-   - **Base URL**（需包含完整路径，例如：`https://api.deepseek.com/v1/chat/completions`）
+   - **Base URL**（例如：`https://api.deepseek.com/v1`）
    - **API Key**（例如：`sk-xxxxxxx...`）
    - **模型名称/Model**（例如：`deepseek-chat` 等）
 3. **填写 Firestorm 日志目录**：程序内默认路径通常为 `%AppData%\Firestorm_x64`。
