@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, onMounted, nextTick, computed } from 'vue';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
@@ -46,9 +46,8 @@ const settings = ref({
   translateGroup: false,
   uiLang:     'zh-CN',
   blacklist:  [],
-  lslEnabled: false,
-  lslPort:    29853,
   lslPublicUrl: '',
+  lslEnabled: false,
 });
 const accountList = ref([]);
 const errorMessage = ref('');
@@ -202,84 +201,6 @@ const toggleBlacklist = (targetId) => {
   saveSettings();
 };
 
-// ── LSL 中继服务器 ────────────────────────────────────────────
-const lslServerAddr = ref('');
-
-const startLslServer = async () => {
-  try {
-    const addr = await invoke('start_lsl_server', { port: settings.value.lslPort });
-    lslServerAddr.value = addr;
-  } catch (e) {
-    // 已在运行则展示已存地址
-    if (String(e).includes('already running')) {
-      lslServerAddr.value = `本机 IP:${settings.value.lslPort}`;
-    }
-  }
-};
-
-const stopLslServer = async () => {
-  await invoke('stop_lsl_server');
-  lslServerAddr.value = '';
-};
-
-const toggleLslServer = async () => {
-  if (settings.value.lslEnabled) {
-    await startLslServer();
-  } else {
-    await stopLslServer();
-  }
-  saveSettings();
-};
-
-const LSL_SCRIPT_TEMPLATE = (serverUrl) => `// AISLtalk Nearby Chat HUD
-// 采用最高鲁棒性的 llJsonSetValue 构建 JSON，防止特殊符号断链
-string SERVER_URL = "${serverUrl}";
-integer LISTEN_HANDLE;
-
-default {
-    state_entry() {
-        LISTEN_HANDLE = llListen(0, "", NULL_KEY, "");
-        llOwnerSay("[AISLtalk] 已开启附近频道监听，当前上报地址：\\n" + SERVER_URL);
-    }
-    listen(integer channel, string name, key id, string message) {
-        if (id == llGetOwner()) return; // 略过自身消息
-        
-        string payload = llJsonSetValue("", ["sender"], name);
-        payload = llJsonSetValue(payload, ["text"], message);
-        
-        // 发送 POST，增加 ngrok-skip-browser-warning 特殊头绕过内网穿透的警告拦截页
-        llHTTPRequest(SERVER_URL, [
-            HTTP_METHOD, "POST", 
-            HTTP_MIMETYPE, "application/json",
-            HTTP_CUSTOM_HEADER, "ngrok-skip-browser-warning", "1"
-        ], payload);
-    }
-    http_response(key id, integer status, list meta, string body) {}
-    on_rez(integer p) { llResetScript(); }
-}`;
-
-const copyLslScript = async () => {
-  let url = settings.value.lslPublicUrl.trim();
-  if (!url) {
-    url = lslServerAddr.value
-      ? `http://${lslServerAddr.value}/chat`
-      : `http://你的公网IP:${settings.value.lslPort}/chat`;
-  } else {
-    // 智能补全 http /chat 后缀
-    if (!url.endsWith('/chat')) {
-      url = url.endsWith('/') ? url + 'chat' : url + '/chat';
-    }
-    if (!url.startsWith('http')) {
-      url = 'http://' + url;
-    }
-  }
-  
-  const script = LSL_SCRIPT_TEMPLATE(url);
-  await navigator.clipboard.writeText(script);
-  alert('✅ LSL 脚本已复制到剪贴板，请在 SL 脚本编辑器中全选粘贴！');
-};
-
-
 onMounted(async () => {
   // 读取持久化设置
   const saved = localStorage.getItem('sl-translator-settings');
@@ -291,8 +212,7 @@ onMounted(async () => {
         parsed.recvLang = parsed.targetLang;
         delete parsed.targetLang;
       }
-      Object.assign(settings.value, parsed); 
-      settings.value.lslPort = 29853; 
+      Object.assign(settings.value, parsed);
     } catch (_) {}
   }
 
@@ -317,11 +237,6 @@ onMounted(async () => {
   // 自动开启监听逻辑（当存在合法设置时）
   if (settingsValid.value) {
     startListening();
-  }
-
-  // 如果上次开启了 LSL 中继，自动重启
-  if (settings.value.lslEnabled) {
-    await startLslServer();
   }
 
   // 加载上一次保留的 UI VDOM 会话状态
@@ -696,43 +611,6 @@ const openHistoryFolder = async () => {
             </div>
           </div>
 
-          <div class="form-section lsl-section">
-            <label class="form-label">
-              <input type="checkbox" v-model="settings.lslEnabled" style="vertical-align: middle; margin-right: 5px;" @change="toggleLslServer" />
-              🛸 开启 LSL HUD 公共频道中继
-            </label>
-
-            <div v-if="settings.lslEnabled" class="lsl-config">
-              <div class="input-row" style="margin-top: 8px;">
-                <button class="btn-browse" style="width: 100%;" @click="startLslServer">🔄 重启中继服务</button>
-              </div>
-
-              <div class="input-row" style="margin-top: 8px;">
-                <input
-                  v-model="settings.lslPublicUrl"
-                  class="form-input"
-                  placeholder="可填例如 https://xxx.ngrok-free.dev (未填则默认局域网IP)"
-                  @change="saveSettings"
-                />
-              </div>
-
-              <div v-if="lslServerAddr && !settings.lslPublicUrl" class="lsl-addr-box">
-                <span class="lsl-addr-label">局域网原地址：</span>
-                <code class="lsl-addr">http://{{ lslServerAddr }}:{{ settings.lslPort }}</code>
-              </div>
-
-              <div class="lsl-hint">
-                <p>ℹ️ 如何使用：</p>
-                <ol>
-                  <li>将路由器端口 <b>{{ settings.lslPort }}</b> 转发到此电脑</li>
-                  <li>在 SL 中使用以下 LSL 脚本，将 SERVER_URL 改为公网地址</li>
-                  <li>将脚本放入 HUD，佩戴后即可监听附近频道</li>
-                </ol>
-                <button class="btn-browse" style="width:100%; margin-top: 6px;" @click="copyLslScript">📝 复制 LSL 脚本到剪贴板</button>
-              </div>
-            </div>
-          </div>
-
           <button class="btn-save" @click="saveSettings">{{ i18n.saveBtn }}</button>
 
         </section>
@@ -766,22 +644,13 @@ const openHistoryFolder = async () => {
           <!-- English Tutorial -->
           <div v-else style="line-height: 1.6; user-select: text;">
             <h2 style="margin-top:0;">AI SLtalk Tutorial</h2>
-            <p>Welcome to this seamless SL chat relay plugin! It captures data natively via logs or HUD scripts for automated robust translation.</p>
+            <p>Welcome! Silently reads Firestorm chat log files to automatically translate all incoming messages from nearby chat and IMs in real time.</p>
 
-            <h3>1. Basic Setup (Log Scanner)</h3>
+            <h3>1. Basic Setup</h3>
             <ul style="padding-left:20px; font-size: 0.9em; opacity: 0.9;">
               <li>Enter your <b>API Key</b> and <b>Base URL</b>. (Base URL is optional if using the official OpenAI servers).</li>
               <li>Click the "Start Listening" button on the top bar. You're set!</li>
             </ul>
-
-            <h3>2. LSL High-speed Relay (Ngrok Required)</h3>
-            <ol style="padding-left:20px; font-size: 0.9em; opacity: 0.9;">
-              <li>Run the <code>ngrok http 29853</code> command locally (grab Ngrok at ngrok.com).</li>
-              <li>Paste the auto-generated <code>https://xxx.ngrok.app</code> into the Public URL box located in settings.</li>
-              <li>Click below to <b>Copy LSL Script</b>.</li>
-              <li>In Second Life, build a simple object attached as your HUD, create a new script file inside, and paste the code.</li>
-              <li>Wear it, and start experiencing lightning-speed translations right here internally without relying on raw game logs!</li>
-            </ol>
             <p style="text-align:center; opacity:0.6; margin-top:30px; font-size: 0.8em;">AI SLtalk 2026 - Designed for seamless intercultural SL experiences</p>
           </div>
         </section>
