@@ -418,6 +418,41 @@ const refreshAccounts = async () => {
 };
 
 // ── 监听控制 ──────────────────────────────────────────────────────
+const testApiStatus = ref('idle');
+const testApiMessage = ref('');
+
+const testApiConnection = async () => {
+  if (!settings.value.apiKey) {
+    testApiStatus.value = 'error';
+    testApiMessage.value = '请先填写 API Key';
+    return;
+  }
+  
+  testApiStatus.value = 'testing';
+  testApiMessage.value = '正在连接 API...';
+  saveSettings();
+  
+  let result = '';
+  // 调用一个简单的问候来进行网络畅通测试
+  await LLMService.translateStream('Test message connection please reply Hello', [], (chunk) => {
+    result += chunk;
+    if (result.length > 0 && testApiStatus.value === 'testing') {
+      testApiStatus.value = 'success';
+      testApiMessage.value = '✅ 测试通过！API 连接正常。';
+    }
+  }, {
+    apiKey:     settings.value.apiKey,
+    baseUrl:    settings.value.baseUrl,
+    model:      settings.value.model,
+    targetLang: 'English'
+  });
+  
+  if (testApiStatus.value !== 'success') {
+    testApiStatus.value = 'error';
+    testApiMessage.value = '❌ 测试失败：无法从 API 获取到任何响应流数据，请检查 Base URL。';
+  }
+};
+
 const startListening = async () => {
   errorMessage.value = '';
   if (!settings.value.logDir || !settings.value.account) {
@@ -628,7 +663,15 @@ const openHistoryFolder = async () => {
 
           <div class="form-section">
             <label class="form-label">{{ i18n.modelLabel }}</label>
-            <input v-model="settings.model" class="form-input" placeholder="gpt-4o-mini" />
+            <div class="input-row">
+              <input v-model="settings.model" class="form-input" placeholder="gpt-4o-mini" />
+              <button class="btn-browse" @click="testApiConnection" :disabled="testApiStatus === 'testing'" style="min-width: 80px;">
+                {{ testApiStatus === 'testing' ? '测试中...' : '测试 API' }}
+              </button>
+            </div>
+            <div v-if="testApiMessage" class="form-hint" :style="{ color: testApiStatus === 'success' ? '#10b981' : (testApiStatus === 'error' ? '#ef4444' : '#fbbf24') }" style="margin-top: 6px;">
+              {{ testApiMessage }}
+            </div>
           </div>
 
           <div class="form-section">
