@@ -67,6 +67,6 @@ jobs:
             - **macOS**: 下载 `.dmg` 文件（Universal Binary，同时支持 Intel + Apple Silicon）
 
             > macOS 用户：首次打开如遇安全阻止，请在"系统设置 → 隐私与安全性"中点击"仍然打开"。
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
