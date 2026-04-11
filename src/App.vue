@@ -436,10 +436,6 @@ const testApiConnection = async () => {
   // 调用一个简单的问候来进行网络畅通测试
   await LLMService.translateStream('Test message connection please reply Hello', [], (chunk) => {
     result += chunk;
-    if (result.length > 0 && testApiStatus.value === 'testing') {
-      testApiStatus.value = 'success';
-      testApiMessage.value = '✅ 测试通过！API 连接正常。';
-    }
   }, {
     apiKey:     settings.value.apiKey,
     baseUrl:    settings.value.baseUrl,
@@ -447,7 +443,13 @@ const testApiConnection = async () => {
     targetLang: 'English'
   });
   
-  if (testApiStatus.value !== 'success') {
+  if (result.includes('[网络错误]') || result.includes('[错误]')) {
+    testApiStatus.value = 'error';
+    testApiMessage.value = '❌ 测试失败：' + result.replace('\n', '').trim();
+  } else if (result.trim().length > 0) {
+    testApiStatus.value = 'success';
+    testApiMessage.value = '✅ 测试通过！API 连接正常。';
+  } else {
     testApiStatus.value = 'error';
     testApiMessage.value = '❌ 测试失败：无法从 API 获取到任何响应流数据，请检查 Base URL。';
   }
