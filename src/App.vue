@@ -134,14 +134,16 @@ const activeTabMessages = computed(() => {
   return tab.messages.slice(-limit);
 });
 
+let isPaginating = false;
 const handleChatScroll = async (e) => {
-  if (e.target.scrollTop <= 5) {
+  if (e.target.scrollTop <= 5 && !isPaginating) {
     const tabId = activeChatTabId.value;
     const tab = chatTabs.value.find(t => t.id === tabId);
     if (!tab) return;
     
     const limit = tabRenderLimits.value[tabId] || CHAT_RENDER_LIMIT;
     if (limit < tab.messages.length) {
+      isPaginating = true;
       const oldHeight = e.target.scrollHeight;
       const oldScrollTop = e.target.scrollTop;
       
@@ -151,6 +153,9 @@ const handleChatScroll = async (e) => {
       await nextTick();
       // 计算加入新节点后的高度差并恢复滚动位置
       e.target.scrollTop = e.target.scrollHeight - oldHeight + oldScrollTop;
+      
+      // 释放锁，允许下次上拉触发
+      setTimeout(() => { isPaginating = false; }, 50);
     }
   }
 };
