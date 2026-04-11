@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, nextTick, computed } from 'vue';
+import { ref, watch, onMounted, nextTick, computed } from 'vue';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
 import { TauriBridge } from './services/TauriBridge';
@@ -377,6 +377,12 @@ onMounted(async () => {
     await nextTick();
     inputRef.value?.focus();
   });
+});
+
+watch([activeTab, isListening], ([newTab, newListening]) => {
+  if (newTab === TAB_CHAT && newListening) {
+    scrollToBottom();
+  }
 });
 
 // ── 设置操作 ──────────────────────────────────────────────────────
