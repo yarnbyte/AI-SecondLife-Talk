@@ -648,8 +648,9 @@ const openHistoryFolder = async () => {
 
             <h3>1. Basic Setup</h3>
             <ul style="padding-left:20px; font-size: 0.9em; opacity: 0.9;">
-              <li>Enter your <b>API Key</b> and <b>Base URL</b>. (Base URL is optional if using the official OpenAI servers).</li>
-              <li>Click the "Start Listening" button on the top bar. You're set!</li>
+              <li>In Firestorm, go to <b>Preferences → Privacy → Logs &amp; Transcripts</b> and check <b>Save nearby chat transcript</b>.</li>
+              <li>Enter your <b>API Key</b> and <b>Base URL</b>. (Base URL is optional if using official OpenAI servers).</li>
+              <li>Select your SL account in settings, then click <b>Start Listening</b>.</li>
             </ul>
             <p style="text-align:center; opacity:0.6; margin-top:30px; font-size: 0.8em;">AI SLtalk 2026 - Designed for seamless intercultural SL experiences</p>
           </div>

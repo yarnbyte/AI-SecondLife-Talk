@@ -26,17 +26,18 @@ A non-intrusive, automated AI translation relay and assistant for **Second Life*
 
 ## 快速使用指南 (中文教程)
 
-欢迎使用 **AI SLtalk**！这款全自动翻译辅助工具可通过静默读取 Firestorm 保存的聊天记录文件，或通过 LSL 脚本直接中继来实现翻译体验。
+欢迎使用 **AI SLtalk**！这款全自动翻译辅助工具通过静默读取 Firestorm 保存的聊天记录文件，实现对附近频道和私聊的实时翻译。
 
 ### 1. 基础配置
-1. 获取翻译引擎 API。你需要拥有一个兼容 OpenAI 格式的 API（如 OpenAI 官方、DeepSeek、千问等）：
+1. **开启 Firestorm 聊天记录保存**：打开 Firestorm 的 **Preferences → Privacy → Logs & Transcripts**，勾选 **Save nearby chat transcript**。
+2. 获取翻译引擎 API。你需要拥有一个兼容 OpenAI 格式的 API（如 OpenAI 官方、DeepSeek、千问等）：
    - **Base URL**（例如：`https://api.deepseek.com/v1`）
    - **API Key**（例如：`sk-xxxxxxx...`）
    - **模型名称/Model**（例如：`deepseek-chat` 等）
-2. **填写 Firestorm 日志目录**：程序内默认路径通常为 `%AppData%\Firestorm_x64`。
-3. **选择 SL 账号**：在下拉列表中选中你需要翻译的登录账号。
-4. **填写 API 信息**：填入你刚才准备好的 API 数据。
-5. **开启监听**：点击软件顶栏的“▶️ 开启监听”按钮。只要接收到信息（无论是周围环境发言还是他人私聊），都会自动翻译并实时的呈现在对应频道列表中；在底部输入框输入中文按回车会自动翻译并复制进剪贴板。
+3. **填写 Firestorm 日志目录**：程序内默认路径通常为 `%AppData%\Firestorm_x64`。
+4. **选择 SL 账号**：在下拉列表中选中你需要翻译的登录账号。
+5. **填写 API 信息**：填入你刚才准备好的 API 数据。
+6. **开启监听**：点击软件顶栏的"▶️ 开启监听"按钮。只要接收到信息（无论是周围环境发言还是他人私聊），都会自动翻译并实时呈现在对应频道列表中；在底部输入框输入中文按回车会自动翻译并复制进剪贴板。
 
 ### 2. 公屏 LSL 脚本中继模式（搭配 ngrok）
 
