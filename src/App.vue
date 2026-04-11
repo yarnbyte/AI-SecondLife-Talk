@@ -123,10 +123,37 @@ const chatTabs = ref([
   }
 ]);
 const activeChatTabId = ref('chat.txt');
+const tabRenderLimits = ref({});
+const CHAT_RENDER_LIMIT = 20;
+
 const activeTabMessages = computed(() => {
   const tab = chatTabs.value.find(t => t.id === activeChatTabId.value);
-  return tab ? tab.messages : [];
+  if (!tab) return [];
+  // 如果当前数量超过限制，则截断；否则全部显示
+  const limit = tabRenderLimits.value[activeChatTabId.value] || CHAT_RENDER_LIMIT;
+  return tab.messages.slice(-limit);
 });
+
+const handleChatScroll = async (e) => {
+  if (e.target.scrollTop <= 5) {
+    const tabId = activeChatTabId.value;
+    const tab = chatTabs.value.find(t => t.id === tabId);
+    if (!tab) return;
+    
+    const limit = tabRenderLimits.value[tabId] || CHAT_RENDER_LIMIT;
+    if (limit < tab.messages.length) {
+      const oldHeight = e.target.scrollHeight;
+      const oldScrollTop = e.target.scrollTop;
+      
+      // 每次滚动到顶多加载 20 条
+      tabRenderLimits.value[tabId] = limit + 20;
+      
+      await nextTick();
+      // 计算加入新节点后的高度差并恢复滚动位置
+      e.target.scrollTop = e.target.scrollHeight - oldHeight + oldScrollTop;
+    }
+  }
+};
 
 const visibleTabs = computed(() => {
   return chatTabs.value.filter(t => !t.hidden);
@@ -302,7 +329,7 @@ onMounted(async () => {
     const reactiveItem = tabInfo.messages[tabInfo.messages.length - 1];
     
     persistState();
-    if (activeChatTabId.value === source) scrollToBottom();
+    if (activeChatTabId.value === source) scrollToBottom(true);
 
     // 自己发的、群组屏蔽、黑名单用户或频道：渲染上屏但不翻译
     const isBlacklisted = settings.value.blacklist.some(
@@ -410,7 +437,7 @@ const sendMyMessage = async () => {
     tab.messages.push(item);
   }
   const reactiveItem = tab ? tab.messages[tab.messages.length - 1] : item;
-  scrollToBottom();
+  scrollToBottom(true);
 
   const history = getHistoryContext(activeChatTabId.value);
 
@@ -446,10 +473,14 @@ const closeInput = () => {
 };
 
 // ── 工具 ──────────────────────────────────────────────────────────
-const scrollToBottom = () => {
+const scrollToBottom = (smooth = false) => {
   nextTick(() => {
     if (chatScrollRef.value) {
-      chatScrollRef.value.scrollTop = chatScrollRef.value.scrollHeight;
+      if (smooth) {
+        chatScrollRef.value.scrollTo({ top: chatScrollRef.value.scrollHeight, behavior: 'smooth' });
+      } else {
+        chatScrollRef.value.scrollTop = chatScrollRef.value.scrollHeight;
+      }
     }
   });
 };
@@ -688,7 +719,7 @@ const openHistoryFolder = async () => {
       </div>
 
       <!-- 聊天面板 -->
-      <div class="chat-list" ref="chatScrollRef">
+      <div class="chat-list" ref="chatScrollRef" @scroll="handleChatScroll">
         <div
           v-for="(msg, i) in activeTabMessages"
           :key="i"

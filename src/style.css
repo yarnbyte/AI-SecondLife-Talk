@@ -128,7 +128,6 @@ html, body, #app {
   background: rgba(15, 23, 42, 0.6);
   border-bottom: 1px solid rgba(255,255,255,0.05);
   overflow-x: auto; flex-shrink: 0;
-  scroll-behavior: smooth;
 }
 .chat-tab-bar::-webkit-scrollbar { height: 4px; }
 .chat-tab-bar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
@@ -265,7 +264,6 @@ html, body, #app {
   overflow-y: auto;
   padding: 16px;
   display: flex; flex-direction: column; gap: 14px;
-  scroll-behavior: smooth;
 }
 .chat-list::-webkit-scrollbar { width: 4px; }
 .chat-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 2px; }
