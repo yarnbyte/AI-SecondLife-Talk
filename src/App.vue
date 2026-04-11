@@ -55,7 +55,7 @@ const errorMessage = ref('');
 // ── 内置语言包 ────────────────────────────────────────────────────
 const I18N_BUNDLES = {
   'zh-CN': {
-    appTitle: "AISLtalk", listeningInfo: "正在同步", startListening: "启动翻译",
+    appTitle: "AISLtalk", listeningInfo: "工作中", startListening: "启动翻译",
     viewHistory: "查看历史记录", settingTitle: "设置",
     folderLog: "Firestorm 日志目录", browseLabel: "浏览",
     slAccount: "SL 账号", slAccountDropTip: "-- 选择账号文件夹 --",
@@ -69,7 +69,7 @@ const I18N_BUNDLES = {
     nearbyTab: "附近", tutorialTitle: "使用教程"
   },
   'en-US': {
-    appTitle: "AISLtalk", listeningInfo: "Syncing", startListening: "Start Translator",
+    appTitle: "AISLtalk", listeningInfo: "Active", startListening: "Start Translator",
     viewHistory: "View History", settingTitle: "Settings",
     folderLog: "Firestorm Log Directory", browseLabel: "Browse",
     slAccount: "SL Account", slAccountDropTip: "-- Select account folder --",
