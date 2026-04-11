@@ -66,7 +66,7 @@ const I18N_BUNDLES = {
     groupCb: "开启群聊同步及翻译 (带有 group 字样的频道)", uiLangLabel: "软件界面语言",
     saveBtn: "💾 保存设置", apiKeyFloatTip: "填写 API Key 才能翻译：",
     inputPlc: "输入你的母语...回车翻译为对方语言并复制到剪贴板",
-    nearbyTab: "附近", tutorialTitle: "使用教程"
+    nearbyTab: "附近", tutorialTitle: "使用教程", stopListeningTitle: "停止翻译引擎"
   },
   'en-US': {
     appTitle: "AISLtalk", listeningInfo: "Active", startListening: "Start Translator",
@@ -80,7 +80,7 @@ const I18N_BUNDLES = {
     groupCb: "Enable group chat translation (files containing 'group')", uiLangLabel: "UI Language",
     saveBtn: "💾 Save Settings", apiKeyFloatTip: "Enter API Key to enable translation:",
     inputPlc: "Type in your language...Enter to translate & copy to clipboard",
-    nearbyTab: "Nearby", tutorialTitle: "Tutorial"
+    nearbyTab: "Nearby", tutorialTitle: "Tutorial", stopListeningTitle: "Stop Translator Engine"
   }
 };
 
@@ -579,7 +579,7 @@ const openTutorial = async () => {
 
       <div class="title-actions" @mousedown.stop>
         <!-- 同步状态 -->
-        <button v-if="isListening" class="badge-listening" @click="toggleListening" style="cursor: pointer;" title="停止同步引擎">
+        <button v-if="isListening" class="badge-listening" @click="toggleListening" style="cursor: pointer;" :title="i18n.stopListeningTitle">
           <Activity :size="12" class="pulse" /> {{ i18n.listeningInfo }}
         </button>
         <button v-else class="btn-start" @click="toggleListening">
