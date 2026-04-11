@@ -4,7 +4,7 @@ use std::io::{BufReader, Seek, SeekFrom, Read};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
+
 use tauri::{AppHandle, Emitter};
 use crate::constants::EVENT_LOG_UPDATE;
 
@@ -34,9 +34,38 @@ impl LogWatcherService {
         // 启动前先初始化所有现存文件的 offset 到末尾，避免重复读历史消息
         Self::init_offsets(&target_dir, &offsets);
 
-        thread::spawn(move || loop {
-            Self::poll_new_lines(&target_dir, &offsets, &app_handle);
-            thread::sleep(Duration::from_millis(150));
+        thread::spawn(move || {
+            use notify::{Watcher, RecursiveMode};
+            use std::sync::mpsc::channel;
+
+            let (tx, rx) = channel();
+            
+            // 使用跨平台的系统原生文件通知监听器
+            let mut watcher = match notify::recommended_watcher(tx) {
+                Ok(w) => w,
+                Err(e) => {
+                    eprintln!("初始化 watcher 失败: {}", e);
+                    return;
+                }
+            };
+
+            if let Err(e) = watcher.watch(&target_dir, RecursiveMode::NonRecursive) {
+                eprintln!("监听目录失败: {}", e);
+                return;
+            }
+
+            // 阻塞等待系统发出的文件修改事件（0 CPU 占用，0 毫秒延迟）
+            loop {
+                match rx.recv() {
+                    Ok(Ok(event)) => {
+                        for path in event.paths {
+                            Self::poll_single_file(&path, &offsets, &app_handle);
+                        }
+                    }
+                    Ok(Err(_)) => {},
+                    Err(_) => break, // 通道断开则退出线程
+                }
+            }
         });
 
         Ok(())
@@ -56,30 +85,26 @@ impl LogWatcherService {
         }
     }
 
-    /// 轮询：读取自上次以来各文件新增的行
-    fn poll_new_lines(dir: &PathBuf, offsets: &OffsetMap, app: &AppHandle) {
-        let Ok(entries) = std::fs::read_dir(dir) else { return };
+    /// 仅处理单个触发了修改事件的文件，避免全盘遍历带来的开销
+    fn poll_single_file(path: &PathBuf, offsets: &OffsetMap, app: &AppHandle) {
+        if !Self::is_log_file(path) { return; }
 
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if !Self::is_log_file(&path) { continue; }
+        let current_offset = {
+            let map = offsets.lock().unwrap();
+            *map.get(path).unwrap_or(&0)
+        };
 
-            let current_offset = {
-                let map = offsets.lock().unwrap();
-                *map.get(&path).unwrap_or(&0)
-            };
+        let Ok(mut file) = File::open(path) else { return };
+        
+        // 获取最新文件长度
+        let Ok(meta) = file.metadata() else { return };
+        let file_len = meta.len();
+        
+        if file_len <= current_offset { return; }
 
-            let Ok(mut file) = File::open(&path) else { continue };
-            
-            // 获取最新文件长度
-            let Ok(meta) = file.metadata() else { continue };
-            let file_len = meta.len();
-            
-            if file_len <= current_offset { continue; }
-
-            // 移动到上次读取的位置
-            let _ = file.seek(SeekFrom::Start(current_offset));
-            
+        // 移动到上次读取的位置
+        let _ = file.seek(SeekFrom::Start(current_offset));
+        
 use serde::Serialize;
 #[derive(Serialize, Clone)]
 struct LogMessage {
@@ -87,29 +112,28 @@ struct LogMessage {
     msg: String,
 }
 
-            // 使用 read_to_string 保证不管是不是 CRLF 换行都不会导致偏移量计算出错
-            let mut read_buf = String::new();
-            let mut reader = BufReader::new(file);
-            let Ok(_) = reader.read_to_string(&mut read_buf) else { continue };
+        // 使用 read_to_string 保证不管是不是 CRLF 换行都不会导致偏移量计算出错
+        let mut read_buf = String::new();
+        let mut reader = BufReader::new(file);
+        let Ok(_) = reader.read_to_string(&mut read_buf) else { return };
 
-            // 以换行为界，把完整内容分发送
-            for line in read_buf.lines() {
-                if let Some(msg) = Self::parse_log_line(line) {
-                    let source_name = path.file_name()
-                        .and_then(|n| n.to_str())
-                        .unwrap_or("chat.txt")
-                        .to_string();
+        // 以换行为界，把完整内容分发送
+        for line in read_buf.lines() {
+            if let Some(msg) = Self::parse_log_line(line) {
+                let source_name = path.file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("chat.txt")
+                    .to_string();
 
-                    let _ = app.emit(EVENT_LOG_UPDATE, LogMessage {
-                        source: source_name,
-                        msg,
-                    });
-                }
+                let _ = app.emit(EVENT_LOG_UPDATE, LogMessage {
+                    source: source_name,
+                    msg,
+                });
             }
-
-            // 直接用底层文件的绝对 size 替代手工长度叠加
-            offsets.lock().unwrap().insert(path, file_len);
         }
+
+        // 记录新的文件末尾位置
+        offsets.lock().unwrap().insert(path.clone(), file_len);
     }
 
     /// 判断是否为 Firestorm 日志文件（.log 或 .txt）
