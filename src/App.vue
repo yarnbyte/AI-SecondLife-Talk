@@ -156,7 +156,11 @@ const handleChatScroll = async (e) => {
 };
 
 const visibleTabs = computed(() => {
-  return chatTabs.value.filter(t => !t.hidden);
+  let tabs = chatTabs.value.filter(t => !t.hidden);
+  if (!settings.value.translateGroup) {
+    tabs = tabs.filter(t => !t.id.toLowerCase().includes('group'));
+  }
+  return tabs;
 });
 
 const persistState = () => {
@@ -306,6 +310,9 @@ onMounted(async () => {
     // 系统上下线提示：直接丢弃，不渲染不翻译
     if (isSystemMessage) return;
 
+    // 如果未开启群聊翻译，且这是个群组日志：直接丢弃，不建 Tab 不渲染
+    if (skipGroupMessage) return;
+
     // 定位或创建 Tab
     let tabInfo = chatTabs.value.find(t => t.id === source);
     if (!tabInfo) {
@@ -331,13 +338,13 @@ onMounted(async () => {
     persistState();
     if (activeChatTabId.value === source) scrollToBottom(true);
 
-    // 自己发的、群组屏蔽、黑名单用户或频道：渲染上屏但不翻译
+    // 自己发的、黑名单用户或频道：渲染上屏但不翻译
     const isBlacklisted = settings.value.blacklist.some(
       name => name.trim().toLowerCase() === sender.toLowerCase() || 
               name.trim().toLowerCase() === source.toLowerCase() || 
               name.trim().toLowerCase() === tabInfo.title.toLowerCase()
     );
-    if (isMySelf || skipGroupMessage || isBlacklisted) return;
+    if (isMySelf || isBlacklisted) return;
 
     // 组织上文（将同一个对话频道里的前面 N 句当做参考喂给AI以保持连贯！）
     const history = getHistoryContext(source);
