@@ -43,7 +43,6 @@ const settings = ref({
   baseUrl:    API_DEFAULTS.BASE_URL,
   model:      API_DEFAULTS.MODEL,
   recvLang:   'Simplified Chinese',
-  sendLang:   'Indonesian',
   contextCount: 5,
   translateGroup: false,
   uiLang:     'zh-CN',
@@ -57,14 +56,13 @@ const errorMessage = ref('');
 // ── 内置语言包 ────────────────────────────────────────────────────
 const I18N_BUNDLES = {
   'zh-CN': {
-    appTitle: "AISLtalk", listeningInfo: "工作中", startListening: "启动翻译",
+    appTitle: "AI.SLtalk", listeningInfo: "工作中", startListening: "启动翻译",
     viewHistory: "查看历史记录", settingTitle: "设置",
     folderLog: "日志目录", browseLabel: "浏览",
     slAccount: "SL 账号", slAccountDropTip: "-- 选择账号文件夹 --",
     slAccountNoDirHint: "请先填写日志目录，软件会自动扫描账号列表。",
     apiKeyLabel: "API Key", baseUrlLabel: "Base URL", modelLabel: "模型",
     recvLangConfig: "将其发来的消息，翻译为：",
-    sendLangConfig: "将我发出的消息，翻译为对方的语言：",
     ctxCountSetting: "翻译参考上文的条数（默认 5 条，填 0 关闭）",
     groupCb: "开启群聊同步及翻译 (带有 group 字样的频道)", uiLangLabel: "软件界面语言",
     saveBtn: "💾 保存设置", apiKeyFloatTip: "填写 API Key 才能翻译：",
@@ -85,14 +83,13 @@ const I18N_BUNDLES = {
     updateAvailable: "发现新版本：v{v}", updateBtn: "前往下载"
   },
   'en-US': {
-    appTitle: "AISLtalk", listeningInfo: "Active", startListening: "Start Translator",
+    appTitle: "AI.SLtalk", listeningInfo: "Active", startListening: "Start Translator",
     viewHistory: "View History", settingTitle: "Settings",
     folderLog: "Log Directory", browseLabel: "Browse",
     slAccount: "SL Account", slAccountDropTip: "-- Select account folder --",
     slAccountNoDirHint: "Please set the log directory first.",
     apiKeyLabel: "API Key", baseUrlLabel: "Base URL", modelLabel: "Model",
     recvLangConfig: "Translate incoming messages to:",
-    sendLangConfig: "Translate my outgoing messages to (their language):",
     ctxCountSetting: "Context lines for translation (0 = disabled):",
     groupCb: "Enable group chat translation (files containing 'group')", uiLangLabel: "UI Language",
     saveBtn: "💾 Save Settings", apiKeyFloatTip: "Enter API Key to enable translation:",
@@ -544,17 +541,21 @@ const sendMyMessage = async () => {
   const reactiveItem = tab ? tab.messages[tab.messages.length - 1] : item;
   scrollToBottom(true);
 
-  const history = getHistoryContext(activeChatTabId.value);
+  const otherMessages = getOtherRawMessages(activeChatTabId.value);
+  const contextBlock = otherMessages.length > 0
+    ? `这是对方发给我的最近消息（最多 5 条）\n${otherMessages.join('\n')}\n\n我想回复：`
+    : ``;
+  const sendText = contextBlock + text;
 
   let translatedResult = '';
-  await LLMService.translateStream(text, history, (chunk) => {
+  await LLMService.translateStream(sendText, [], (chunk) => {
     translatedResult  += chunk;
     reactiveItem.translated += chunk;
   }, {
     apiKey:     settings.value.apiKey,
     baseUrl:    settings.value.baseUrl,
     model:      settings.value.model,
-    targetLang: settings.value.sendLang,
+    direction:  'send',
   });
 
   if (translatedResult.trim()) {
@@ -753,11 +754,6 @@ const openTutorial = async () => {
           <div class="form-section">
             <label class="form-label">{{ i18n.recvLangConfig }}</label>
             <input v-model="settings.recvLang" class="form-input" placeholder="Simplified Chinese / English / etc..." />
-          </div>
-
-          <div class="form-section">
-            <label class="form-label">{{ i18n.sendLangConfig }}</label>
-            <input v-model="settings.sendLang" class="form-input" placeholder="Indonesian / Japanese / etc..." />
           </div>
 
           <div class="form-section">
