@@ -6,7 +6,7 @@
 >
 > An AI-powered real-time translation assistant for **Second Life**, built with **Tauri v2 + Vue 3 + Rust**.
 
-*Scroll down for English documentation.*
+*[Click here for English documentation](https://github.com/yarnbyte/AI-SecondLife-Talk?tab=readme-ov-file#features-english)*
 
 ---
 
