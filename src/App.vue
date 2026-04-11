@@ -247,6 +247,19 @@ const getHistoryContext = (tabId) => {
     content: `[Context] ${m.sender}: ${m.text || m.translated}`
   }));
 };
+
+// 获取对方发出的原文消息，不包括自己发出的，用于推断对方语言
+const getOtherRawMessages = (tabId) => {
+  const tab = chatTabs.value.find(t => t.id === tabId);
+  if (!tab) return [];
+  const myName = (settings.value.account || '').trim().toLowerCase();
+  const CONTEXT_LIMIT = 5;
+  const otherMessages = tab.messages
+    .filter(m => m.sender.trim().toLowerCase() !== myName && m.text)
+    .slice(-CONTEXT_LIMIT);
+  return otherMessages.map((m, i) => `${i + 1}. ${m.text}`);
+};
+
 const inputShow = ref(false);
 const draftText = ref('');
 const inputRef  = ref(null);

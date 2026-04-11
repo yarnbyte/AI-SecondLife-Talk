@@ -1,7 +1,7 @@
 {
   "name": "aisltalk",
   "description": "A non-intrusive, automated AI translation relay and assistant for Second Life.",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "type": "module",
   "scripts": {
     "dev": "vite",
