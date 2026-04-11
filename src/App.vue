@@ -43,6 +43,7 @@ const settings = ref({
   baseUrl:    API_DEFAULTS.BASE_URL,
   model:      API_DEFAULTS.MODEL,
   recvLang:   'Simplified Chinese',
+  sendLang:   'Indonesian',
   contextCount: 5,
   translateGroup: false,
   uiLang:     'zh-CN',
@@ -63,6 +64,7 @@ const I18N_BUNDLES = {
     slAccountNoDirHint: "请先填写日志目录，软件会自动扫描账号列表。",
     apiKeyLabel: "API Key", baseUrlLabel: "Base URL", modelLabel: "模型",
     recvLangConfig: "将其发来的消息，翻译为：",
+    sendLangConfig: "将我发出的消息，翻译为对方的语言：",
     ctxCountSetting: "翻译参考上文的条数（默认 5 条，填 0 关闭）",
     groupCb: "开启群聊同步及翻译 (带有 group 字样的频道)", uiLangLabel: "软件界面语言",
     saveBtn: "💾 保存设置", apiKeyFloatTip: "填写 API Key 才能翻译：",
@@ -90,6 +92,7 @@ const I18N_BUNDLES = {
     slAccountNoDirHint: "Please set the log directory first.",
     apiKeyLabel: "API Key", baseUrlLabel: "Base URL", modelLabel: "Model",
     recvLangConfig: "Translate incoming messages to:",
+    sendLangConfig: "Translate my outgoing messages to (their language):",
     ctxCountSetting: "Context lines for translation (0 = disabled):",
     groupCb: "Enable group chat translation (files containing 'group')", uiLangLabel: "UI Language",
     saveBtn: "💾 Save Settings", apiKeyFloatTip: "Enter API Key to enable translation:",
@@ -750,6 +753,11 @@ const openTutorial = async () => {
           <div class="form-section">
             <label class="form-label">{{ i18n.recvLangConfig }}</label>
             <input v-model="settings.recvLang" class="form-input" placeholder="Simplified Chinese / English / etc..." />
+          </div>
+
+          <div class="form-section">
+            <label class="form-label">{{ i18n.sendLangConfig }}</label>
+            <input v-model="settings.sendLang" class="form-input" placeholder="Indonesian / Japanese / etc..." />
           </div>
 
           <div class="form-section">
