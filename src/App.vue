@@ -66,7 +66,19 @@ const I18N_BUNDLES = {
     groupCb: "开启群聊同步及翻译 (带有 group 字样的频道)", uiLangLabel: "软件界面语言",
     saveBtn: "💾 保存设置", apiKeyFloatTip: "填写 API Key 才能翻译：",
     inputPlc: "输入你的母语...回车翻译为对方语言并复制到剪贴板",
-    nearbyTab: "附近", tutorialTitle: "使用教程", stopListeningTitle: "停止翻译引擎"
+    nearbyTab: "附近", tutorialTitle: "使用教程", stopListeningTitle: "停止翻译引擎",
+    testApiBtn: "测试 API", testApiTesting: "测试中...",
+    testApiNoKey: "请先填写 API Key",
+    testApiConnecting: "正在连接 API...",
+    testApiSuccess: "✅ 测试通过！API 连接正常。",
+    testApiFail: "❌ 测试失败：无法获取响应流，请检查 Base URL。",
+    muteChanTip: "免打扰 (停止翻译此频道)",
+    sendBtnTip: "翻译并复制",
+    mutedOverlay: "已对该频道静音（不再翻译），您可以点击上方 Tab 中的钓铃图标取消静音。",
+    engineStartFail: "引擎启动失败: ",
+    settingsIncomplete: "请先填写正确的日志目录，并在下拉框中选择你的 SL 账号！\n如果下拉列表为空，请检查日志目录是否正确。",
+    pinTitle: "全局置顶", unpinTitle: "取消置顶",
+    minimizeTitle: "最小化", closeTitle: "关闭"
   },
   'en-US': {
     appTitle: "AISLtalk", listeningInfo: "Active", startListening: "Start Translator",
@@ -80,7 +92,19 @@ const I18N_BUNDLES = {
     groupCb: "Enable group chat translation (files containing 'group')", uiLangLabel: "UI Language",
     saveBtn: "💾 Save Settings", apiKeyFloatTip: "Enter API Key to enable translation:",
     inputPlc: "Type in your language...Enter to translate & copy to clipboard",
-    nearbyTab: "Nearby", tutorialTitle: "Tutorial", stopListeningTitle: "Stop Translator Engine"
+    nearbyTab: "Nearby", tutorialTitle: "Tutorial", stopListeningTitle: "Stop Translator Engine",
+    testApiBtn: "Test API", testApiTesting: "Testing...",
+    testApiNoKey: "Please fill in the API Key first",
+    testApiConnecting: "Connecting to API...",
+    testApiSuccess: "✅ Test passed! API connection is working.",
+    testApiFail: "❌ Test failed: no response stream received. Please check the Base URL.",
+    muteChanTip: "Mute (stop translating this channel)",
+    sendBtnTip: "Translate and copy",
+    mutedOverlay: "This channel is muted. Click the bell icon above to unmute.",
+    engineStartFail: "Engine failed to start: ",
+    settingsIncomplete: "Please set the log directory and select your SL account first.\nIf the dropdown is empty, check that the log directory path is correct.",
+    pinTitle: "Always on Top", unpinTitle: "Unpin",
+    minimizeTitle: "Minimize", closeTitle: "Close"
   }
 };
 
@@ -424,16 +448,15 @@ const testApiMessage = ref('');
 const testApiConnection = async () => {
   if (!settings.value.apiKey) {
     testApiStatus.value = 'error';
-    testApiMessage.value = '请先填写 API Key';
+    testApiMessage.value = i18n.value.testApiNoKey;
     return;
   }
   
   testApiStatus.value = 'testing';
-  testApiMessage.value = '正在连接 API...';
+  testApiMessage.value = i18n.value.testApiConnecting;
   saveSettings();
   
   let result = '';
-  // 调用一个简单的问候来进行网络畅通测试
   await LLMService.translateStream('Test message connection please reply Hello', [], (chunk) => {
     result += chunk;
   }, {
@@ -443,15 +466,15 @@ const testApiConnection = async () => {
     targetLang: 'English'
   });
   
-  if (result.includes('[网络错误]') || result.includes('[错误]')) {
+  if (result.includes('[\u7f51\u7edc\u9519\u8bef]') || result.includes('[\u9519\u8bef]')) {
     testApiStatus.value = 'error';
-    testApiMessage.value = '❌ 测试失败：' + result.replace('\n', '').trim();
+    testApiMessage.value = '\u274c ' + result.replace('\n', '').trim();
   } else if (result.trim().length > 0) {
     testApiStatus.value = 'success';
-    testApiMessage.value = '✅ 测试通过！API 连接正常。';
+    testApiMessage.value = i18n.value.testApiSuccess;
   } else {
     testApiStatus.value = 'error';
-    testApiMessage.value = '❌ 测试失败：无法从 API 获取到任何响应流数据，请检查 Base URL。';
+    testApiMessage.value = i18n.value.testApiFail;
   }
 };
 
@@ -470,7 +493,7 @@ const toggleListening = async () => {
   
   if (!settings.value.logDir || !settings.value.account) {
     activeTab.value = TAB_SETTINGS;
-    errorMessage.value = "请先填写正确的日志目录，并在下拉框中选择你的 SL 账号！\n如果下拉列表为空，请检查日志目录是否正确（必须是 Firestorm_x64 的根目录）。";
+    errorMessage.value = i18n.value.settingsIncomplete;
     return;
   }
   saveSettings();
@@ -480,7 +503,7 @@ const toggleListening = async () => {
     isListening.value = true;
     activeTab.value   = TAB_CHAT;
   } catch (e) {
-    errorMessage.value = '引擎启动失败: ' + e;
+    errorMessage.value = i18n.value.engineStartFail + e;
   }
 };
 
@@ -611,18 +634,18 @@ const openTutorial = async () => {
         </button>
 
         <!-- 置顶 -->
-        <button class="ctrl-btn ctrl-pin" :class="{ pinned: isPinned }" :title="isPinned ? '取消置顶' : '全局置顶'" @click="togglePin">
+        <button class="ctrl-btn ctrl-pin" :class="{ pinned: isPinned }" :title="isPinned ? i18n.unpinTitle : i18n.pinTitle" @click="togglePin">
           <Pin v-if="!isPinned" :size="14" />
           <PinOff v-else :size="14" />
         </button>
 
         <!-- 最小化 -->
-        <button class="ctrl-btn" title="最小化" @click="handleMinimize">
+        <button class="ctrl-btn" :title="i18n.minimizeTitle" @click="handleMinimize">
           <Minus :size="14" />
         </button>
 
         <!-- 关闭 -->
-        <button class="ctrl-btn ctrl-close" title="关闭" @click="handleClose">
+        <button class="ctrl-btn ctrl-close" :title="i18n.closeTitle" @click="handleClose">
           <X :size="14" />
         </button>
       </div>
@@ -686,7 +709,7 @@ const openTutorial = async () => {
             <div class="input-row">
               <input v-model="settings.model" class="form-input" placeholder="gpt-4o-mini" />
               <button class="btn-browse" @click="testApiConnection" :disabled="testApiStatus === 'testing'" style="min-width: 80px;">
-                {{ testApiStatus === 'testing' ? '测试中...' : '测试 API' }}
+                {{ testApiStatus === 'testing' ? i18n.testApiTesting : i18n.testApiBtn }}
               </button>
             </div>
             <div v-if="testApiMessage" class="form-hint" :style="{ color: testApiStatus === 'success' ? '#10b981' : (testApiStatus === 'error' ? '#ef4444' : '#fbbf24') }" style="margin-top: 6px;">
@@ -751,7 +774,7 @@ const openTutorial = async () => {
           :class="{ active: activeChatTabId === t.id, unread: t.hasUnread }"
           @click="switchTab(t.id)">
           <span class="tab-title">{{ (t.id === 'chat.txt' || t.id === 'conversation.log') ? i18n.nearbyTab : t.title }}</span>
-          <button class="tab-close tab-ctrl-btn" title="免打扰 (停止翻译此频道)" @click.stop="toggleBlacklist(t.id)">
+          <button class="tab-close tab-ctrl-btn" :title="i18n.muteChanTip" @click.stop="toggleBlacklist(t.id)">
             <BellOff v-if="isTargetBlacklisted(t.id)" :size="10" />
             <Bell v-else :size="10" />
           </button>
@@ -774,7 +797,7 @@ const openTutorial = async () => {
           <div class="message-bubble group">
             <div class="source-text">{{ msg.text }}</div>
             <div class="translate-text" v-if="msg.translated && msg.translated.trim() !== msg.text.trim()">{{ msg.translated }}</div>
-            <button class="msg-copy-btn" @click="copyContent(msg.translated || msg.text)" title="复制消息">
+            <button class="msg-copy-btn" @click="copyContent(msg.translated || msg.text)" :title="i18n.sendBtnTip">
               <Copy :size="12" />
             </button>
           </div>
@@ -784,7 +807,7 @@ const openTutorial = async () => {
       <!-- 底部常驻输入栏 -->
       <div class="bottom-input-area" v-if="activeTab === TAB_CHAT && isListening">
         <div v-if="isTargetBlacklisted(activeChatTabId)" class="blacklist-overlay-msg">
-          已对该频道静音（不再翻译），您可以点击上方 Tab 中的铃铛图标取消静音。
+          {{ i18n.mutedOverlay }}
         </div>
         <input
           v-else
@@ -794,7 +817,7 @@ const openTutorial = async () => {
           :placeholder="i18n.inputPlc"
           @keyup.enter="sendMyMessage"
         />
-        <button v-if="!isTargetBlacklisted(activeChatTabId)" class="btn-send-inline" @click="sendMyMessage" title="Translate and copy">
+        <button v-if="!isTargetBlacklisted(activeChatTabId)" class="btn-send-inline" @click="sendMyMessage" :title="i18n.sendBtnTip">
           <Send :size="14" />
         </button>
       </div>
