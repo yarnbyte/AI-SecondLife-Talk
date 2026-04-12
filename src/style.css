@@ -254,6 +254,16 @@ html, body, #app {
 }
 .btn-save:hover { background: linear-gradient(135deg, rgba(99,102,241,.5), rgba(79,70,229,.5)); }
 
+.btn-secondary {
+  padding: 10px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 8px; color: var(--text-main);
+  cursor: pointer; transition: all .15s;
+  display: flex; align-items: center; justify-content: center;
+}
+.btn-secondary:hover { background: rgba(255,255,255,0.15); }
+
 /* 滑入动画 */
 .slide-down-enter-active,
 .slide-down-leave-active { transition: max-height .25s ease, opacity .2s ease; overflow: hidden; }

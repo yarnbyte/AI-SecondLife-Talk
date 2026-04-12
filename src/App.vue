@@ -786,20 +786,6 @@ const openTutorial = async () => {
           <Play :size="12" /> {{ i18n.startListening }}
         </button>
 
-        <!-- 打开历史记录 -->
-        <button class="ctrl-btn" :title="i18n.viewHistory" @click="openHistoryFolder">
-          <BookText :size="14" />
-        </button>
-
-        <!-- 教程 -->
-        <button
-          class="ctrl-btn"
-          :title="i18n.tutorialTitle"
-          @click="openTutorial"
-        >
-          <HelpCircle :size="14" />
-        </button>
-
         <!-- 设置 -->
         <button
           class="ctrl-btn"
@@ -955,7 +941,15 @@ const openTutorial = async () => {
             </div>
           </div>
 
-          <button class="btn-save" @click="saveSettings">{{ i18n.saveBtn }}</button>
+          <div style="display: flex; gap: 8px; margin-top: 10px;">
+            <button class="btn-secondary" @click="openHistoryFolder" :title="i18n.viewHistory">
+              <BookText :size="14" />
+            </button>
+            <button class="btn-secondary" @click="openTutorial" :title="i18n.tutorialTitle">
+              <HelpCircle :size="14" />
+            </button>
+            <button class="btn-save" style="flex: 1;" @click="saveSettings">{{ i18n.saveBtn }}</button>
+          </div>
 
         </section>
       </Transition>
