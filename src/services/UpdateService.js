@@ -57,7 +57,7 @@ export class UpdateService {
            source: releaseInfo.source,
            // Redirect to the web page containing the releases
            url: releaseInfo.source === 'gitee' 
-             ? 'https://gitee.com/yarnbyte/AI-SecondLife-Talk/releases'
+             ? `https://gitee.com/yarnbyte/AI-SecondLife-Talk/releases/tag/${releaseInfo.tag_name}`
              : 'https://github.com/yarnbyte/AI-SecondLife-Talk/releases/latest'
          };
       }
