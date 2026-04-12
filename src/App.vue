@@ -83,7 +83,8 @@ const I18N_BUNDLES = {
     updateAvailable: "发现新版本：v{v}", updateBtn: "前往下载",
     copyOriginal: "复制原文", copyTranslation: "复制译文", suggestReply: "AI 建议回复",
     aiChatPlc: "让 AI 帮你翻译、润色、建议回复…", aiChatSend: "发送",
-    copyResult: "复制结果", clearResult: "清除"
+    copyResult: "复制结果", clearResult: "清除",
+    refreshAccounts: "刷新账号列表"
   },
   'en-US': {
     appTitle: "AI.SLtalk", listeningInfo: "Active", startListening: "Start Translator",
@@ -113,7 +114,8 @@ const I18N_BUNDLES = {
     updateAvailable: "New version available: v{v}", updateBtn: "Download",
     copyOriginal: "Copy original", copyTranslation: "Copy translation", suggestReply: "AI suggest reply",
     aiChatPlc: "Ask AI to translate, polish, suggest a reply...", aiChatSend: "Send",
-    copyResult: "Copy result", clearResult: "Clear"
+    copyResult: "Copy result", clearResult: "Clear",
+    refreshAccounts: "Refresh account list"
   }
 };
 
@@ -292,18 +294,30 @@ const toggleBlacklist = (targetId) => {
 };
 
 onMounted(async () => {
-  // 读取持久化设置
-  const saved = localStorage.getItem('sl-translator-settings');
-  if (saved) {
-    try { 
-      const parsed = JSON.parse(saved);
-      // 兼容旧版单一 targetLang
-      if (parsed.targetLang && !parsed.recvLang) {
-        parsed.recvLang = parsed.targetLang;
-        delete parsed.targetLang;
-      }
+  // 读取持久化设置（兼容旧版单 key 格式，自动迁移）
+  const legacySaved = localStorage.getItem('sl-translator-settings');
+  const globalSaved  = localStorage.getItem(GLOBAL_SETTINGS_KEY);
+
+  if (legacySaved && !globalSaved) {
+    // 迁移旧格式
+    try {
+      const parsed = JSON.parse(legacySaved);
+      if (parsed.targetLang && !parsed.recvLang) { parsed.recvLang = parsed.targetLang; }
       Object.assign(settings.value, parsed);
+      // 写入新格式
+      saveSettings();
+      localStorage.removeItem('sl-translator-settings');
     } catch (_) {}
+  } else if (globalSaved) {
+    // 新格式：先加载全局
+    try { Object.assign(settings.value, JSON.parse(globalSaved)); } catch (_) {}
+    // 再加载上次选中账号的账号级设置
+    if (settings.value.account) {
+      try {
+        const acctSaved = localStorage.getItem(accountSettingsKey(settings.value.account));
+        if (acctSaved) Object.assign(settings.value, JSON.parse(acctSaved));
+      } catch (_) {}
+    }
   }
 
   // 启动时应用已保存的界面语言
@@ -453,8 +467,43 @@ watch([activeTab, isListening], ([newTab, newListening]) => {
 });
 
 // ── 设置操作 ──────────────────────────────────────────────────────
+// 全局设置键（API Key、模型等共享配置）
+const GLOBAL_SETTINGS_KEY = 'sl-translator-global';
+// 账号级设置键（黑名单、接收语言等随账号变化）
+const accountSettingsKey = (account) => `sl-settings-${account}`;
+// 全局字段清单
+const GLOBAL_FIELDS = ['logDir', 'apiKey', 'baseUrl', 'model', 'uiLang', 'contextCount', 'translateGroup'];
+
 const saveSettings = () => {
-  localStorage.setItem('sl-translator-settings', JSON.stringify(settings.value));
+  const global = {};
+  GLOBAL_FIELDS.forEach(k => { global[k] = settings.value[k]; });
+  localStorage.setItem(GLOBAL_SETTINGS_KEY, JSON.stringify(global));
+
+  if (settings.value.account) {
+    const perAccount = {
+      account:   settings.value.account,
+      recvLang:  settings.value.recvLang,
+      blacklist: settings.value.blacklist,
+    };
+    localStorage.setItem(accountSettingsKey(settings.value.account), JSON.stringify(perAccount));
+  }
+};
+
+// 切换账号时加载该账号的专属设置
+const loadAccountSettings = () => {
+  if (!settings.value.account) return;
+  try {
+    const saved = localStorage.getItem(accountSettingsKey(settings.value.account));
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // 只覆盖账号级字段，不影响 API Key 等全局字段
+      settings.value.recvLang  = parsed.recvLang  ?? settings.value.recvLang;
+      settings.value.blacklist = parsed.blacklist ?? [];
+    } else {
+      // 新账号：重置账号级字段为默认值
+      settings.value.blacklist = [];
+    }
+  } catch (_) {}
 };
 
 const browseLogDir = async () => {
@@ -782,12 +831,15 @@ const openTutorial = async () => {
 
           <div class="form-section">
             <label class="form-label"><User :size="13" /> {{ i18n.slAccount }}</label>
-            <div class="select-wrap">
-              <select v-model="settings.account" class="form-select">
-                <option value="" disabled>{{ i18n.slAccountDropTip }}</option>
-                <option v-for="acc in accountList" :key="acc" :value="acc">{{ acc }}</option>
-              </select>
-              <ChevronDown :size="14" class="select-chevron" />
+            <div class="input-row">
+              <div class="select-wrap" style="flex:1">
+                <select v-model="settings.account" class="form-select" @change="loadAccountSettings">
+                  <option value="" disabled>{{ i18n.slAccountDropTip }}</option>
+                  <option v-for="acc in accountList" :key="acc" :value="acc">{{ acc }}</option>
+                </select>
+                <ChevronDown :size="14" class="select-chevron" />
+              </div>
+              <button class="btn-browse" @click="refreshAccounts" :title="i18n.refreshAccounts">&#x21bb;</button>
             </div>
             <div class="form-hint" v-if="accountList.length === 0">
               {{ i18n.slAccountNoDirHint }}
