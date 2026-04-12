@@ -56,7 +56,6 @@ html, body, #app {
   background: var(--bg);
   backdrop-filter: blur(var(--blur));
   -webkit-backdrop-filter: blur(var(--blur));
-  border: 1px solid var(--border);
   border-radius: var(--radius-base);
   overflow: hidden;
   display: flex;
