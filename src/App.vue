@@ -50,6 +50,7 @@ const settings = ref({
   lslPublicUrl: '',
   lslEnabled: false,
   viewerType: 'firestorm',  // 'firestorm' | 'official' | 'custom'
+  bgOpacity: 0.75,          // 窗口背景透明度
 });
 const accountList = ref([]);
 const errorMessage = ref('');
@@ -90,7 +91,8 @@ const I18N_BUNDLES = {
     viewerFirestorm: "Firestorm Viewer",
     viewerOfficial: "官方客户端 (Official)",
     viewerCustom: "自定义目录",
-    logDirCustomHint: "请手动填写日志目录路径"
+    logDirCustomHint: "请手动填写日志目录路径",
+    windowOpacityLabel: "窗口透明度",
   },
   'en-US': {
     appTitle: "AI.SLtalk", listeningInfo: "Active", startListening: "Start Translator",
@@ -126,7 +128,8 @@ const I18N_BUNDLES = {
     viewerFirestorm: "Firestorm Viewer",
     viewerOfficial: "Official Second Life Viewer",
     viewerCustom: "Custom directory",
-    logDirCustomHint: "Enter the log directory path manually"
+    logDirCustomHint: "Enter the log directory path manually",
+    windowOpacityLabel: "Window Opacity",
   }
 };
 
@@ -302,6 +305,11 @@ const toggleBlacklist = (targetId) => {
   }
   saveSettings();
 };
+
+// 监听并应用背景透明度
+watch(() => settings.value.bgOpacity, (alpha) => {
+  document.documentElement.style.setProperty('--bg-opacity', alpha);
+}, { immediate: true });
 
 onMounted(async () => {
   // 读取持久化设置（兼容旧版单 key 格式，自动迁移）
@@ -489,7 +497,7 @@ const GLOBAL_SETTINGS_KEY = 'sl-translator-global';
 // 账号级设置键（黑名单、接收语言等随账号变化）
 const accountSettingsKey = (account) => `sl-settings-${account}`;
 // 全局字段清单
-const GLOBAL_FIELDS = ['logDir', 'account', 'apiKey', 'baseUrl', 'model', 'uiLang', 'contextCount', 'translateGroup', 'viewerType'];
+const GLOBAL_FIELDS = ['logDir', 'account', 'apiKey', 'baseUrl', 'model', 'uiLang', 'contextCount', 'translateGroup', 'viewerType', 'bgOpacity'];
 
 const saveSettings = () => {
   const global = {};
@@ -927,6 +935,19 @@ const openTutorial = async () => {
               <input type="checkbox" v-model="settings.translateGroup" style="vertical-align: middle; margin-right: 5px;" />
               {{ i18n.groupCb }}
             </label>
+          </div>
+
+          <div class="form-section">
+            <label class="form-label" style="display: flex; justify-content: space-between;">
+              <span>{{ i18n.windowOpacityLabel }}</span>
+              <span style="opacity: 0.7;">{{ Math.round(settings.bgOpacity * 100) }}%</span>
+            </label>
+            <input 
+              type="range" 
+              v-model.number="settings.bgOpacity" 
+              min="0" max="1" step="0.05"
+              style="width: 100%; accent-color: var(--accent); cursor: pointer;"
+            />
           </div>
 
           <div class="form-section">
