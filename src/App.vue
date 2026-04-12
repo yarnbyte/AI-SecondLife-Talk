@@ -3,6 +3,7 @@ import { ref, watch, onMounted, nextTick, computed } from 'vue';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
 import { openUrl } from '@tauri-apps/plugin-opener';
+import { saveWindowState, restoreStateCurrent } from '@tauri-apps/plugin-window-state';
 import { TauriBridge } from './services/TauriBridge';
 import { LLMService } from './services/LLMService';
 import { UpdateService } from './services/UpdateService';
@@ -23,7 +24,10 @@ const win = getCurrentWindow();
 const handleDrag     = () => win.startDragging();
 const handleMinimize = () => win.minimize();
 // 关闭 = 隐藏到系统托盘，从托盘右键「退出」才真正结束
-const handleClose    = () => win.hide();
+const handleClose = async () => {
+  try { await saveWindowState(63); } catch (e) {}
+  win.hide();
+};
 
 const isPinned = ref(false);
 const togglePin = async () => {
@@ -312,6 +316,19 @@ watch(() => settings.value.bgOpacity, (alpha) => {
 }, { immediate: true });
 
 onMounted(async () => {
+  // 恢复窗口状态并显示
+  try {
+    await restoreStateCurrent(63); // 63 = StateFlags.ALL
+    await win.show();
+  } catch (e) {
+    console.error('State restore error:', e);
+    await win.show(); // Fallback
+  }
+
+  // 监听移动/缩放时保存
+  win.onMoved(() => saveWindowState(63).catch(()=>{}));
+  win.onResized(() => saveWindowState(63).catch(()=>{}));
+
   // 读取持久化设置（兼容旧版单 key 格式，自动迁移）
   const legacySaved = localStorage.getItem('sl-translator-settings');
   const globalSaved  = localStorage.getItem(GLOBAL_SETTINGS_KEY);
