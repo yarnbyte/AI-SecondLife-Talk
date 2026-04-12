@@ -211,7 +211,7 @@ const persistState = () => {
     // 保存最近 100 条防止 JSON 爆满内存
     messages: t.messages.slice(-100)  
   }));
-  invoke('save_ui_state', { state: JSON.stringify(clone) }).catch(console.error);
+  invoke('save_ui_state', { account: settings.value.account || '', state: JSON.stringify(clone) }).catch(console.error);
 };
 
 const closeTab = (tabId) => {
@@ -345,7 +345,7 @@ onMounted(async () => {
 
   // 加载上一次保留的 UI VDOM 会话状态
   try {
-    const savedState = await invoke('load_ui_state');
+    const savedState = await invoke('load_ui_state', { account: settings.value.account || '' });
     if (savedState) {
       chatTabs.value = JSON.parse(savedState);
     }

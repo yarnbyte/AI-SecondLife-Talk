@@ -130,18 +130,18 @@ fn open_history_folder(account: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn save_ui_state(state: String) -> Result<(), String> {
+fn save_ui_state(account: String, state: String) -> Result<(), String> {
     let appdata = std::env::var("APPDATA").map_err(|e| e.to_string())?;
-    let target_dir = format!("{}\\ai_sl_talk", appdata);
-    let _ = std::fs::create_dir_all(&target_dir);
-    std::fs::write(format!("{}\\chat-state.json", target_dir), state).map_err(|e| e.to_string())?;
+    let account_dir = format!("{}\\ai_sl_talk\\{}", appdata, account);
+    let _ = std::fs::create_dir_all(&account_dir);
+    std::fs::write(format!("{}\\chat-state.json", account_dir), state).map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
-fn load_ui_state() -> Result<String, String> {
+fn load_ui_state(account: String) -> Result<String, String> {
     let appdata = std::env::var("APPDATA").map_err(|e| e.to_string())?;
-    let target_file = format!("{}\\ai_sl_talk\\chat-state.json", appdata);
+    let target_file = format!("{}\\ai_sl_talk\\{}\\chat-state.json", appdata, account);
     std::fs::read_to_string(target_file).map_err(|e| e.to_string())
 }
 
