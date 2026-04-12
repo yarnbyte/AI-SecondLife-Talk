@@ -430,9 +430,15 @@ onMounted(async () => {
       model:      settings.value.model,
       targetLang: settings.value.recvLang,
     });
-    
-    // 异步保存到本地历史记录档案中
-    if (reactiveItem.translated.trim()) {
+
+    // 翻译完成后滚到底部（无论翻译时用户是否滚动过）
+    if (activeChatTabId.value === source) scrollToBottom(true);
+
+    // 公屏频道不存档，仅私聊保存
+    const PUBLIC_CHAT_FILES = ['chat.txt', 'conversation.log'];
+    const isPublicChannel = PUBLIC_CHAT_FILES.includes(source.toLowerCase());
+
+    if (!isPublicChannel && reactiveItem.translated.trim()) {
       invoke('append_translation_history', {
         source,
         timestamp: reactiveItem.time,
