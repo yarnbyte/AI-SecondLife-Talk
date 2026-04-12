@@ -3,7 +3,7 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 
 // Gitee is used as a mirror/fallback for users with poor GitHub connectivity
 const GITHUB_API = 'https://api.github.com/repos/yarnbyte/AI-SecondLife-Talk/releases/latest';
-const GITEE_API = 'https://gitee.com/api/v5/repos/yarnbyte/AI-SecondLife-Talk/releases/latest';
+const GITEE_API = 'https://gitee.com/api/v5/repos/yarnbyte/AI-SecondLife-Talk/tags';
 
 export class UpdateService {
   /**
@@ -28,7 +28,13 @@ export class UpdateService {
         
         const fetchGitee = fetch(GITEE_API, { signal: controller.signal }).then(res => {
           if (!res.ok) throw new Error('Gitee HTTP ' + res.status);
-          return res.json().then(data => ({ ...data, source: 'gitee' }));
+          return res.json().then(data => {
+            if (Array.isArray(data) && data.length > 0) {
+              const sorted = data.sort((a, b) => UpdateService.compareVersion(b.name.replace(/^v/, ''), a.name.replace(/^v/, '')));
+              return { tag_name: sorted[0].name, source: 'gitee' };
+            }
+            throw new Error('Gitee tags empty');
+          });
         });
         
         releaseInfo = await Promise.any([fetchGithub, fetchGitee]);
