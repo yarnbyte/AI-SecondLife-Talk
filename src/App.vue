@@ -290,6 +290,22 @@ const aiChat = ref({ loading: false, result: '' });
 const aiChatInput = ref('');
 const aiChatInputRef = ref(null);
 
+// 文本域自动调整高度（1 行 → 最多 3 行）
+const LINE_HEIGHT_PX  = 22;   // 对应 line-height: 1.5 * 14px
+const MAX_CHAT_ROWS   = 3;
+
+const autoResizeTextarea = () => {
+  const el = aiChatInputRef.value;
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, LINE_HEIGHT_PX * MAX_CHAT_ROWS + 16) + 'px';
+};
+
+const resetTextareaHeight = () => {
+  const el = aiChatInputRef.value;
+  if (el) el.style.height = 'auto';
+};
+
 // ── 黑名单管理 ───────────────────────────────────────────────
 const isTargetBlacklisted = (targetId) => {
   return settings.value.blacklist.some(n => n.toLowerCase() === targetId.toLowerCase());
@@ -717,6 +733,7 @@ const sendAiChat = async () => {
 
   aiChat.value = { loading: true, result: '' };
   aiChatInput.value = '';
+  resetTextareaHeight();
 
   const tab = chatTabs.value.find(t => t.id === activeChatTabId.value);
   const contextMessages = tab ? tab.messages.slice(-8) : [];
@@ -1075,7 +1092,8 @@ const openTutorial = async () => {
               class="inline-input ai-chat-textarea"
               v-model="aiChatInput"
               :placeholder="i18n.aiChatPlc"
-              rows="3"
+              rows="1"
+              @input="autoResizeTextarea"
               @keydown.enter.exact.prevent="sendAiChat"
               @keydown.shift.enter.exact="() => {}"
               :disabled="aiChat.loading"
