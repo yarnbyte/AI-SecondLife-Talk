@@ -288,26 +288,6 @@ const chatScrollRef = ref(null);
 const aiReplyMap = ref({});   // { 'tabId:msgIndex': { loading, text } }
 const aiChat = ref({ loading: false, result: '' });
 const aiChatInput = ref('');
-const aiChatInputRef = ref(null);
-
-// 文本域自动调整高度（1 行 → 最多 3 行）
-const LINE_HEIGHT_PX  = 20;   // font-size 13px * 1.5
-const MAX_CHAT_ROWS   = 3;
-
-const autoResizeTextarea = () => {
-  const el = aiChatInputRef.value;
-  if (!el) return;
-  // 先设为最低高度，以获取真实包裹内容的 scrollHeight
-  el.style.height = '36px'; 
-  const scrollH = el.scrollHeight;
-  const maxH = LINE_HEIGHT_PX * MAX_CHAT_ROWS + 18; // 3行大概接近 78px
-  el.style.height = Math.min(scrollH, maxH) + 'px';
-};
-
-const resetTextareaHeight = () => {
-  const el = aiChatInputRef.value;
-  if (el) el.style.height = '36px';
-};
 
 // ── 黑名单管理 ───────────────────────────────────────────────
 const isTargetBlacklisted = (targetId) => {
@@ -736,7 +716,6 @@ const sendAiChat = async () => {
 
   aiChat.value = { loading: true, result: '' };
   aiChatInput.value = '';
-  resetTextareaHeight();
 
   const tab = chatTabs.value.find(t => t.id === activeChatTabId.value);
   const contextMessages = tab ? tab.messages.slice(-8) : [];
@@ -1091,12 +1070,10 @@ const openTutorial = async () => {
           <!-- 输入行 -->
           <div class="ai-chat-input-row">
             <textarea
-              ref="aiChatInputRef"
               class="inline-input ai-chat-textarea"
               v-model="aiChatInput"
               :placeholder="i18n.aiChatPlc"
               rows="1"
-              @input="autoResizeTextarea"
               @keydown.enter.exact.prevent="sendAiChat"
               @keydown.shift.enter.exact="() => {}"
               :disabled="aiChat.loading"

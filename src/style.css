@@ -524,13 +524,12 @@ html, body, #app {
   padding: 10px 14px;
 }
 .ai-chat-textarea {
-  resize: none;
-  height: 36px;          /* 固定为 1 行初始高度 */
-  max-height: 86px;      /* 3 行的高度预留 */
+  resize: vertical;
+  min-height: 36px;
+  max-height: 50vh;
   overflow-y: auto;
   line-height: 1.5;
   font-family: inherit;
-  transition: height 0.1s ease;
 }
 
 /* ── 版本更新通知 ───────────────────────────────────────────── */
