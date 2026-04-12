@@ -325,9 +325,16 @@ onMounted(async () => {
     await win.show(); // Fallback
   }
 
-  // 监听移动/缩放时保存
-  win.onMoved(() => saveWindowState(63).catch(()=>{}));
-  win.onResized(() => saveWindowState(63).catch(()=>{}));
+  // 监听移动/缩放时保存（加抖动限制，防止拖拽卡死）
+  let saveTimer = null;
+  const debouncedSave = () => {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      saveWindowState(63).catch(() => {});
+    }, 500);
+  };
+  win.onMoved(debouncedSave);
+  win.onResized(debouncedSave);
 
   // 读取持久化设置（兼容旧版单 key 格式，自动迁移）
   const legacySaved = localStorage.getItem('sl-translator-settings');
