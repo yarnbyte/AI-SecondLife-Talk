@@ -502,8 +502,16 @@ html, body, #app {
 }
 
 .ai-chat-input-row {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: flex-end; gap: 8px;
   padding: 10px 14px;
+}
+.ai-chat-textarea {
+  resize: none;
+  min-height: 60px;
+  max-height: 140px;
+  overflow-y: auto;
+  line-height: 1.5;
+  font-family: inherit;
 }
 
 /* ── 版本更新通知 ───────────────────────────────────────────── */

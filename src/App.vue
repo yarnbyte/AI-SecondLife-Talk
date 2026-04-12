@@ -1070,12 +1070,14 @@ const openTutorial = async () => {
           </div>
           <!-- 输入行 -->
           <div class="ai-chat-input-row">
-            <input
+            <textarea
               ref="aiChatInputRef"
-              class="inline-input"
+              class="inline-input ai-chat-textarea"
               v-model="aiChatInput"
               :placeholder="i18n.aiChatPlc"
-              @keyup.enter="sendAiChat"
+              rows="3"
+              @keydown.enter.exact.prevent="sendAiChat"
+              @keydown.shift.enter.exact="() => {}"
               :disabled="aiChat.loading"
             />
             <button class="btn-send-inline" @click="sendAiChat" :disabled="aiChat.loading">
