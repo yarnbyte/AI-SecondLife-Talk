@@ -490,7 +490,7 @@ const GLOBAL_SETTINGS_KEY = 'sl-translator-global';
 // 账号级设置键（黑名单、接收语言等随账号变化）
 const accountSettingsKey = (account) => `sl-settings-${account}`;
 // 全局字段清单
-const GLOBAL_FIELDS = ['logDir', 'apiKey', 'baseUrl', 'model', 'uiLang', 'contextCount', 'translateGroup', 'viewerType'];
+const GLOBAL_FIELDS = ['logDir', 'account', 'apiKey', 'baseUrl', 'model', 'uiLang', 'contextCount', 'translateGroup', 'viewerType'];
 
 const saveSettings = () => {
   const global = {};
