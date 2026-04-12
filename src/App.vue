@@ -440,6 +440,7 @@ onMounted(async () => {
 
     if (!isPublicChannel && reactiveItem.translated.trim()) {
       invoke('append_translation_history', {
+        account: settings.value.account || '',
         source,
         timestamp: reactiveItem.time,
         sender,
@@ -640,6 +641,7 @@ const sendMyMessage = async () => {
 
   if (translatedResult.trim()) {
     invoke('append_translation_history', {
+      account: settings.value.account || '',
       source: activeChatTabId.value,
       timestamp: item.time,
       sender: item.sender,
@@ -718,7 +720,7 @@ const scrollToBottom = (smooth = false) => {
 };
 
 const openHistoryFolder = async () => {
-  await invoke('open_history_folder');
+  await invoke('open_history_folder', { account: settings.value.account || '' });
 };
 
 const openTutorial = async () => {

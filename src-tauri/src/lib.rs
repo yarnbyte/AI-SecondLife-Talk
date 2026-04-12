@@ -75,14 +75,15 @@ fn list_accounts(log_dir: String) -> Vec<String> {
 }
 
 #[tauri::command]
-fn append_translation_history(source: String, timestamp: String, sender: String, text: String, translated: String) -> Result<(), String> {
+fn append_translation_history(account: String, source: String, timestamp: String, sender: String, text: String, translated: String) -> Result<(), String> {
     use std::fs::{OpenOptions, create_dir_all};
     use std::io::Write;
 
     let appdata = std::env::var("APPDATA").map_err(|e| e.to_string())?;
-    let target_dir = format!("{}\\ai_sl_talk", appdata);
+    // 每个账号有独立的子目录
+    let account_dir = format!("{}\\ai_sl_talk\\{}", appdata, account);
 
-    if let Err(e) = create_dir_all(&target_dir) {
+    if let Err(e) = create_dir_all(&account_dir) {
         return Err(e.to_string());
     }
 
@@ -92,7 +93,7 @@ fn append_translation_history(source: String, timestamp: String, sender: String,
         format!("{}.txt", source)
     };
     
-    let file_path = format!("{}\\{}", target_dir, file_name);
+    let file_path = format!("{}\\{}", account_dir, file_name);
     
     let mut file = OpenOptions::new()
         .create(true)
@@ -109,12 +110,18 @@ fn append_translation_history(source: String, timestamp: String, sender: String,
 }
 
 #[tauri::command]
-fn open_history_folder() -> Result<(), String> {
-    // Windows 环境下快速拉起 explorer 浏览目录
+fn open_history_folder(account: String) -> Result<(), String> {
     let appdata = std::env::var("APPDATA").map_err(|e| e.to_string())?;
-    let target_dir = format!("{}\\ai_sl_talk", appdata);
-    
-    let _ = std::fs::create_dir_all(&target_dir);
+    // 打开该账号的专属子目录；若不存在则创建并打开父目录
+    let account_dir = format!("{}\\ai_sl_talk\\{}", appdata, account);
+    let target_dir = if !account.is_empty() {
+        let _ = std::fs::create_dir_all(&account_dir);
+        account_dir
+    } else {
+        let base = format!("{}\\ai_sl_talk", appdata);
+        let _ = std::fs::create_dir_all(&base);
+        base
+    };
     
     #[cfg(target_os = "windows")]
     let _ = std::process::Command::new("explorer").arg(&target_dir).spawn();
