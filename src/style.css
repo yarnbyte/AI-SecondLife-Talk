@@ -395,6 +395,87 @@ html, body, #app {
 .lsl-hint ol { margin: 0; padding-left: 16px; line-height: 1.8; }
 
 
+/* ── 气泡操作行 ──────────────────────────────────────────────── */
+.bubble-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.message-bubble:hover .bubble-actions { opacity: 1; }
+
+.bubble-action-btn {
+  display: inline-flex; align-items: center; gap: 3px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  color: #94a3b8;
+  padding: 3px 7px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.bubble-action-btn:hover {
+  background: rgba(99,102,241,0.25);
+  color: #c7d2fe;
+  border-color: rgba(99,102,241,0.4);
+}
+.bubble-action-btn.loading { opacity: 0.6; cursor: wait; }
+.bubble-action-btn.danger:hover {
+  background: rgba(239,68,68,0.2);
+  color: #fca5a5;
+  border-color: rgba(239,68,68,0.3);
+}
+
+/* AI 建议回复气泡 */
+.ai-reply-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 4px;
+  max-width: 92%;
+  padding: 8px 10px;
+  background: rgba(99,102,241,0.08);
+  border: 1px solid rgba(99,102,241,0.2);
+  border-radius: 6px;
+  font-size: 12px;
+  color: #a5b4fc;
+}
+.ai-reply-content { flex: 1; line-height: 1.6; white-space: pre-wrap; }
+.ai-thinking { opacity: 0.6; font-style: italic; animation: pulseAnim 1.5s infinite; }
+
+/* ── 底部 AI 对话助手面板 ─────────────────────────────────────── */
+.ai-chat-panel {
+  flex-shrink: 0;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  background: rgba(10, 14, 26, 0.95);
+}
+
+.ai-chat-result {
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.ai-chat-result-text {
+  font-size: 12.5px;
+  color: #c7d2fe;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  max-height: 120px;
+  overflow-y: auto;
+  margin-bottom: 6px;
+}
+.ai-chat-result-text::-webkit-scrollbar { width: 3px; }
+.ai-chat-result-text::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+.ai-chat-result-actions {
+  display: flex; gap: 6px;
+}
+
+.ai-chat-input-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px;
+}
 
 /* ── 版本更新通知 ───────────────────────────────────────────── */
 .update-banner {

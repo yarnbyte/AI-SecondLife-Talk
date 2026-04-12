@@ -80,7 +80,10 @@ const I18N_BUNDLES = {
     settingsIncomplete: "请先填写正确的日志目录，并在下拉框中选择你的 SL 账号！\n如果下拉列表为空，请检查日志目录是否正确。",
     pinTitle: "全局置顶", unpinTitle: "取消置顶",
     minimizeTitle: "最小化", closeTitle: "关闭",
-    updateAvailable: "发现新版本：v{v}", updateBtn: "前往下载"
+    updateAvailable: "发现新版本：v{v}", updateBtn: "前往下载",
+    copyOriginal: "复制原文", copyTranslation: "复制译文", suggestReply: "AI 建议回复",
+    aiChatPlc: "让 AI 帮你翻译、润色、建议回复…", aiChatSend: "发送",
+    copyResult: "复制结果", clearResult: "清除"
   },
   'en-US': {
     appTitle: "AI.SLtalk", listeningInfo: "Active", startListening: "Start Translator",
@@ -107,7 +110,10 @@ const I18N_BUNDLES = {
     settingsIncomplete: "Please set the log directory and select your SL account first.\nIf the dropdown is empty, check that the log directory path is correct.",
     pinTitle: "Always on Top", unpinTitle: "Unpin",
     minimizeTitle: "Minimize", closeTitle: "Close",
-    updateAvailable: "New version available: v{v}", updateBtn: "Download"
+    updateAvailable: "New version available: v{v}", updateBtn: "Download",
+    copyOriginal: "Copy original", copyTranslation: "Copy translation", suggestReply: "AI suggest reply",
+    aiChatPlc: "Ask AI to translate, polish, suggest a reply...", aiChatSend: "Send",
+    copyResult: "Copy result", clearResult: "Clear"
   }
 };
 
@@ -264,6 +270,12 @@ const inputShow = ref(false);
 const draftText = ref('');
 const inputRef  = ref(null);
 const chatScrollRef = ref(null);
+
+// AI 助手相关状态
+const aiReplyMap = ref({});   // { 'tabId:msgIndex': { loading, text } }
+const aiChat = ref({ loading: false, result: '' });
+const aiChatInput = ref('');
+const aiChatInputRef = ref(null);
 
 // ── 黑名单管理 ───────────────────────────────────────────────
 const isTargetBlacklisted = (targetId) => {
@@ -591,6 +603,52 @@ const closeInput = () => {
   draftText.value = '';
 };
 
+// ── AI 气泡：建议回复 ──────────────────────────────────────────
+const getAiReplyKey = (tabId, msgIndex) => `${tabId}:${msgIndex}`;
+
+const askHowToReply = async (msg, msgIndex) => {
+  const tabId = activeChatTabId.value;
+  const key = getAiReplyKey(tabId, msgIndex);
+  if (aiReplyMap.value[key]?.loading) return;
+
+  aiReplyMap.value[key] = { loading: true, text: '' };
+
+  const tab = chatTabs.value.find(t => t.id === tabId);
+  const contextMessages = tab ? tab.messages.slice(-8) : [];
+
+  await LLMService.chatStream(
+    `How should I reply to this message: "${msg.text}"`,
+    contextMessages,
+    (chunk) => { aiReplyMap.value[key].text += chunk; },
+    { apiKey: settings.value.apiKey, baseUrl: settings.value.baseUrl, model: settings.value.model },
+    'reply'
+  );
+
+  aiReplyMap.value[key].loading = false;
+};
+
+// ── AI 底栏对话助手 ────────────────────────────────────────────
+const sendAiChat = async () => {
+  const prompt = aiChatInput.value.trim();
+  if (!prompt || aiChat.value.loading) return;
+
+  aiChat.value = { loading: true, result: '' };
+  aiChatInput.value = '';
+
+  const tab = chatTabs.value.find(t => t.id === activeChatTabId.value);
+  const contextMessages = tab ? tab.messages.slice(-8) : [];
+
+  await LLMService.chatStream(
+    prompt,
+    contextMessages,
+    (chunk) => { aiChat.value.result += chunk; },
+    { apiKey: settings.value.apiKey, baseUrl: settings.value.baseUrl, model: settings.value.model },
+    'chat'
+  );
+
+  aiChat.value.loading = false;
+};
+
 // ── 工具 ──────────────────────────────────────────────────────────
 const scrollToBottom = (smooth = false) => {
   nextTick(() => {
@@ -844,29 +902,82 @@ const openTutorial = async () => {
           <div class="message-bubble group">
             <div class="source-text">{{ msg.text }}</div>
             <div class="translate-text" v-if="msg.translated && msg.translated.trim() !== msg.text.trim()">{{ msg.translated }}</div>
-            <button class="msg-copy-btn" @click="copyContent(msg.translated || msg.text)" :title="i18n.sendBtnTip">
-              <Copy :size="12" />
+            <!-- 气泡操作行 -->
+            <div class="bubble-actions">
+              <button class="bubble-action-btn" @click="copyContent(msg.text)" :title="i18n.copyOriginal">
+                <Copy :size="11" />
+              </button>
+              <button class="bubble-action-btn" v-if="msg.translated && msg.translated !== msg.text" @click="copyContent(msg.translated)" :title="i18n.copyTranslation">
+                <MessageSquareDot :size="11" />
+              </button>
+              <button
+                class="bubble-action-btn"
+                v-if="msg.sender !== (settings.account || 'Me')"
+                @click="askHowToReply(msg, i)"
+                :title="i18n.suggestReply"
+                :class="{ 'loading': aiReplyMap[`${activeChatTabId}:${i}`]?.loading }"
+              >
+                <Sparkles :size="11" />
+              </button>
+            </div>
+          </div>
+          <!-- AI 建议回复展开区 -->
+          <div
+            v-if="aiReplyMap[`${activeChatTabId}:${i}`]"
+            class="ai-reply-box"
+          >
+            <div class="ai-reply-content">
+              <span v-if="aiReplyMap[`${activeChatTabId}:${i}`].loading" class="ai-thinking">✨ 思考中…</span>
+              <span v-else>{{ aiReplyMap[`${activeChatTabId}:${i}`].text }}</span>
+            </div>
+            <button
+              v-if="!aiReplyMap[`${activeChatTabId}:${i}`].loading && aiReplyMap[`${activeChatTabId}:${i}`].text"
+              class="bubble-action-btn"
+              @click="copyContent(aiReplyMap[`${activeChatTabId}:${i}`].text)"
+              :title="i18n.copyResult"
+            >
+              <Copy :size="11" />
             </button>
           </div>
         </div>
       </div>
 
-      <!-- 底部常驻输入栏 -->
-      <div class="bottom-input-area" v-if="activeTab === TAB_CHAT && isListening">
+      <!-- 底部 AI 对话助手 -->
+      <div class="ai-chat-panel" v-if="activeTab === TAB_CHAT && isListening">
         <div v-if="isTargetBlacklisted(activeChatTabId)" class="blacklist-overlay-msg">
           {{ i18n.mutedOverlay }}
         </div>
-        <input
-          v-else
-          ref="inputRef"
-          class="inline-input"
-          v-model="draftText"
-          :placeholder="i18n.inputPlc"
-          @keyup.enter="sendMyMessage"
-        />
-        <button v-if="!isTargetBlacklisted(activeChatTabId)" class="btn-send-inline" @click="sendMyMessage" :title="i18n.sendBtnTip">
-          <Send :size="14" />
-        </button>
+        <template v-else>
+          <!-- AI 回复结果区 -->
+          <div v-if="aiChat.result || aiChat.loading" class="ai-chat-result">
+            <div class="ai-chat-result-text">
+              <span v-if="aiChat.loading && !aiChat.result" class="ai-thinking">✨ 思考中…</span>
+              <span v-else>{{ aiChat.result }}</span>
+            </div>
+            <div class="ai-chat-result-actions">
+              <button v-if="aiChat.result" class="bubble-action-btn" @click="copyContent(aiChat.result)" :title="i18n.copyResult">
+                <Copy :size="11" /> {{ i18n.copyResult }}
+              </button>
+              <button class="bubble-action-btn danger" @click="aiChat = { loading: false, result: '' }" :title="i18n.clearResult">
+                <X :size="11" /> {{ i18n.clearResult }}
+              </button>
+            </div>
+          </div>
+          <!-- 输入行 -->
+          <div class="ai-chat-input-row">
+            <input
+              ref="aiChatInputRef"
+              class="inline-input"
+              v-model="aiChatInput"
+              :placeholder="i18n.aiChatPlc"
+              @keyup.enter="sendAiChat"
+              :disabled="aiChat.loading"
+            />
+            <button class="btn-send-inline" @click="sendAiChat" :disabled="aiChat.loading">
+              <Send :size="14" />
+            </button>
+          </div>
+        </template>
       </div>
 
     </div>

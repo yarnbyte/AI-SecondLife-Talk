@@ -47,6 +47,51 @@ Maintain the casual or Roleplay (RP) tone as required. Do NOT output notes or ex
             }
         ];
 
+        await LLMService._doStream(messages, apiKey, baseUrl, model, onChunk);
+    }
+
+    /**
+     * 通用 AI 对话流（用于底栏 AI 助手和气泡"如何回复"功能）
+     * @param {string} userPrompt - 用户指令
+     * @param {Array} contextMessages - 当前 tab 最近聊天记录 [{sender, text, translated}]
+     * @param {Function} onChunk - 流式回调
+     * @param {Object} config - { apiKey, baseUrl, model }
+     * @param {string} mode - 'reply'(建议回复) | 'chat'(自由对话)
+     */
+    static async chatStream(userPrompt, contextMessages = [], onChunk, config, mode = 'chat') {
+        const apiKey = config.apiKey;
+        let baseUrl = config.baseUrl || API_DEFAULTS.BASE_URL;
+        if (baseUrl && !baseUrl.includes('/chat/completions')) {
+            baseUrl = baseUrl.replace(/\/+$/, '') + '/chat/completions';
+        }
+        const model = config.model || API_DEFAULTS.MODEL;
+
+        if (!apiKey) {
+            onChunk("[错误] 请先配置 API Key");
+            return;
+        }
+
+        const contextSummary = contextMessages
+            .slice(-8)
+            .map(m => `${m.sender}: ${m.text}${m.translated && m.translated !== m.text ? ` (翻译: ${m.translated})` : ''}`)
+            .join('\n');
+
+        const systemPrompt = mode === 'reply'
+            ? `You are a helpful assistant for a Second Life user. Based on the recent conversation context below, suggest natural, friendly reply options the user can send. Output 2-3 short reply suggestions in the language the other person is using. Format each as a numbered list. Be concise and conversational.
+\nRecent conversation:\n${contextSummary}`
+            : `You are a helpful AI assistant for a Second Life user. You have access to the recent conversation history below. Help the user with whatever they ask — translate, polish, suggest replies, explain context, or anything else.
+\nRecent conversation:\n${contextSummary}`;
+
+        const messages = [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+        ];
+
+        await LLMService._doStream(messages, apiKey, baseUrl, model, onChunk);
+    }
+
+    /** 内部通用流式请求 */
+    static async _doStream(messages, apiKey, baseUrl, model, onChunk) {
         try {
             const response = await fetch(baseUrl, {
                 method: "POST",
@@ -54,11 +99,7 @@ Maintain the casual or Roleplay (RP) tone as required. Do NOT output notes or ex
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${apiKey}`,
                 },
-                body: JSON.stringify({
-                    model: model,
-                    messages: messages,
-                    stream: true,
-                })
+                body: JSON.stringify({ model, messages, stream: true })
             });
 
             if (!response.ok) {
@@ -80,7 +121,7 @@ Maintain the casual or Roleplay (RP) tone as required. Do NOT output notes or ex
                         if (line.startsWith("data: ") && line !== "data: [DONE]") {
                             try {
                                 const data = JSON.parse(line.substring(6));
-                                if (data.choices && data.choices[0].delta && data.choices[0].delta.content) {
+                                if (data.choices?.[0]?.delta?.content) {
                                     onChunk(data.choices[0].delta.content);
                                 }
                             } catch (e) {
