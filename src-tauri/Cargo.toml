@@ -1,6 +1,6 @@
 [package]
 name = "ai-sltalk"
-version = "1.0.7"
+version = "1.0.8"
 description = "AI-powered immersive chat translation assistant for Second Life"
 authors = ["you"]
 edition = "2021"
@@ -28,4 +28,7 @@ tauri-plugin-global-shortcut = "2.3.1"
 tauri-plugin-fs = "2.5.0"
 tauri-plugin-dialog = "2.7.0"
 tokio = { version = "1.51.1", features = ["rt", "sync"] }
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-window-state = "2"
 

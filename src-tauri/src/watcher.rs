@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{BufReader, Seek, SeekFrom, Read};
+use std::io::{BufReader, Read, Seek, SeekFrom};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use tauri::{AppHandle, Emitter};
 use crate::constants::EVENT_LOG_UPDATE;
+use tauri::{AppHandle, Emitter};
 
 // 记录每个被监听文件的已读字节偏移量
 type OffsetMap = Arc<Mutex<HashMap<PathBuf, u64>>>;
@@ -35,11 +35,11 @@ impl LogWatcherService {
         Self::init_offsets(&target_dir, &offsets);
 
         thread::spawn(move || {
-            use notify::{Watcher, RecursiveMode};
+            use notify::{RecursiveMode, Watcher};
             use std::sync::mpsc::channel;
 
             let (tx, rx) = channel();
-            
+
             // 使用跨平台的系统原生文件通知监听器
             let mut watcher = match notify::recommended_watcher(tx) {
                 Ok(w) => w,
@@ -66,7 +66,7 @@ impl LogWatcherService {
                             Self::poll_single_file(&path, &offsets, &app_handle);
                         }
                     }
-                    Ok(Err(_)) => {},
+                    Ok(Err(_)) => {}
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => continue,
                     Err(_) => break, // 通道断开则退出线程
                 }
@@ -83,7 +83,9 @@ impl LogWatcherService {
 
     /// 初始化：把目录下所有日志文件的 offset 设置到当前末尾
     fn init_offsets(dir: &PathBuf, offsets: &OffsetMap) {
-        let Ok(entries) = std::fs::read_dir(dir) else { return };
+        let Ok(entries) = std::fs::read_dir(dir) else {
+            return;
+        };
         let mut map = offsets.lock().unwrap();
         for entry in entries.flatten() {
             let path = entry.path();
@@ -97,48 +99,60 @@ impl LogWatcherService {
 
     /// 仅处理单个触发了修改事件的文件，避免全盘遍历带来的开销
     fn poll_single_file(path: &PathBuf, offsets: &OffsetMap, app: &AppHandle) {
-        if !Self::is_log_file(path) { return; }
+        if !Self::is_log_file(path) {
+            return;
+        }
 
         let current_offset = {
             let map = offsets.lock().unwrap();
             *map.get(path).unwrap_or(&0)
         };
 
-        let Ok(mut file) = File::open(path) else { return };
-        
+        let Ok(mut file) = File::open(path) else {
+            return;
+        };
+
         // 获取最新文件长度
         let Ok(meta) = file.metadata() else { return };
         let file_len = meta.len();
-        
-        if file_len <= current_offset { return; }
+
+        if file_len <= current_offset {
+            return;
+        }
 
         // 移动到上次读取的位置
         let _ = file.seek(SeekFrom::Start(current_offset));
-        
-use serde::Serialize;
-#[derive(Serialize, Clone)]
-struct LogMessage {
-    source: String,
-    msg: String,
-}
+
+        use serde::Serialize;
+        #[derive(Serialize, Clone)]
+        struct LogMessage {
+            source: String,
+            msg: String,
+        }
 
         // 使用 read_to_string 保证不管是不是 CRLF 换行都不会导致偏移量计算出错
         let mut read_buf = String::new();
         let mut reader = BufReader::new(file);
-        let Ok(_) = reader.read_to_string(&mut read_buf) else { return };
+        let Ok(_) = reader.read_to_string(&mut read_buf) else {
+            return;
+        };
 
         // 以换行为界，把完整内容分发送
         for line in read_buf.lines() {
             if let Some(msg) = Self::parse_log_line(line) {
-                let source_name = path.file_name()
+                let source_name = path
+                    .file_name()
                     .and_then(|n| n.to_str())
                     .unwrap_or("chat.txt")
                     .to_string();
 
-                let _ = app.emit(EVENT_LOG_UPDATE, LogMessage {
-                    source: source_name,
-                    msg,
-                });
+                let _ = app.emit(
+                    EVENT_LOG_UPDATE,
+                    LogMessage {
+                        source: source_name,
+                        msg,
+                    },
+                );
             }
         }
 
@@ -159,7 +173,9 @@ struct LogMessage {
     /// 或者：         yyyy/MM/dd HH:mm  SenderName: message
     fn parse_log_line(line: &str) -> Option<String> {
         let line = line.trim();
-        if line.is_empty() { return None; }
+        if line.is_empty() {
+            return None;
+        }
 
         // 跳过系统噪音行（不含冒号的时间戳行、空行等）
         // Firestorm 行格式：以 [ 开头或数字日期开头，后跟时间，再跟发送者和消息
@@ -177,7 +193,9 @@ struct LogMessage {
         };
 
         // msg_part 现在是 "SenderName: message"
-        if !msg_part.contains(": ") { return None; }
+        if !msg_part.contains(": ") {
+            return None;
+        }
 
         // 过滤系统消息（Firestorm 典型噪音）
         let lower = msg_part.to_lowercase();

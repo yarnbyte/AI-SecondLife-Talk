@@ -1,7 +1,7 @@
 {
   "name": "aisltalk",
   "description": "A non-intrusive, automated AI translation relay and assistant for Second Life.",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -16,6 +16,7 @@
     "@tauri-apps/plugin-fs": "^2.5.0",
     "@tauri-apps/plugin-global-shortcut": "^2.3.1",
     "@tauri-apps/plugin-opener": "^2.5.3",
+    "@tauri-apps/plugin-window-state": "^2.4.1",
     "lucide-vue-next": "^1.0.0",
     "vue": "^3.5.13"
   },
