@@ -13,6 +13,30 @@
   --radius-base:  10px;
 }
 
+/* ── 全局滚动条美化 ─────────────────────────── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99,102,241,0.25) transparent;
+}
+*::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(99,102,241,0.2);
+  border-radius: 10px;
+  transition: background 0.2s;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(99,102,241,0.55);
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* ── Reset ─────────────────────────────────────────────────── */
 html, body, #app {
   margin: 0; padding: 0;
@@ -129,9 +153,6 @@ html, body, #app {
   border-bottom: 1px solid rgba(255,255,255,0.05);
   overflow-x: auto; flex-shrink: 0;
 }
-.chat-tab-bar::-webkit-scrollbar { height: 4px; }
-.chat-tab-bar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
-.chat-tab-bar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
 
 .chat-tab-item {
   display: flex; align-items: center; gap: 6px;
@@ -166,8 +187,7 @@ html, body, #app {
   padding: 16px; overflow-y: auto;
   max-height: 65vh;
 }
-.settings-panel::-webkit-scrollbar { width: 4px; }
-.settings-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 2px; }
+
 
 .error-banner {
   background: rgba(239, 68, 68, 0.1);
@@ -265,8 +285,7 @@ html, body, #app {
   padding: 16px;
   display: flex; flex-direction: column; gap: 14px;
 }
-.chat-list::-webkit-scrollbar { width: 4px; }
-.chat-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 2px; }
+
 
 .message-group { display: flex; flex-direction: column; align-items: flex-start; max-width: 92%; }
 .message-group.self-msg { align-self: flex-end; align-items: flex-end; }
@@ -495,8 +514,7 @@ html, body, #app {
   overflow-y: auto;
   margin-bottom: 6px;
 }
-.ai-chat-result-text::-webkit-scrollbar { width: 3px; }
-.ai-chat-result-text::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
 .ai-chat-result-actions {
   display: flex; gap: 6px;
 }
