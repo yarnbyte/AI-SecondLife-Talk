@@ -525,8 +525,8 @@ html, body, #app {
 }
 .ai-chat-textarea {
   resize: none;
-  min-height: 38px;      /* 1 行 */
-  max-height: 88px;      /* 3 行 */
+  height: 36px;          /* 固定为 1 行初始高度 */
+  max-height: 86px;      /* 3 行的高度预留 */
   overflow-y: auto;
   line-height: 1.5;
   font-family: inherit;

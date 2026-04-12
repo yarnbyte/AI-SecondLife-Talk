@@ -291,19 +291,22 @@ const aiChatInput = ref('');
 const aiChatInputRef = ref(null);
 
 // 文本域自动调整高度（1 行 → 最多 3 行）
-const LINE_HEIGHT_PX  = 22;   // 对应 line-height: 1.5 * 14px
+const LINE_HEIGHT_PX  = 20;   // font-size 13px * 1.5
 const MAX_CHAT_ROWS   = 3;
 
 const autoResizeTextarea = () => {
   const el = aiChatInputRef.value;
   if (!el) return;
-  el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, LINE_HEIGHT_PX * MAX_CHAT_ROWS + 16) + 'px';
+  // 先设为最低高度，以获取真实包裹内容的 scrollHeight
+  el.style.height = '36px'; 
+  const scrollH = el.scrollHeight;
+  const maxH = LINE_HEIGHT_PX * MAX_CHAT_ROWS + 18; // 3行大概接近 78px
+  el.style.height = Math.min(scrollH, maxH) + 'px';
 };
 
 const resetTextareaHeight = () => {
   const el = aiChatInputRef.value;
-  if (el) el.style.height = 'auto';
+  if (el) el.style.height = '36px';
 };
 
 // ── 黑名单管理 ───────────────────────────────────────────────
