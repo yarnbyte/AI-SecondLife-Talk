@@ -52,6 +52,18 @@ fn get_default_log_dir() -> Option<String> {
         .map(|appdata| format!("{}\\Firestorm_x64", appdata))
 }
 
+/// 根据客户端类型返回对应的日志目录路径
+#[tauri::command]
+fn get_viewer_log_dir(viewer: String) -> Option<String> {
+    let appdata = std::env::var("APPDATA").ok()?;
+    let subdir = match viewer.as_str() {
+        "firestorm" => "Firestorm_x64",
+        "official"  => "SecondLife",
+        _           => return None,  // custom：由前端自行处理
+    };
+    Some(format!("{}\\{}", appdata, subdir))
+}
+
 #[tauri::command]
 fn list_accounts(log_dir: String) -> Vec<String> {
     let Ok(entries) = std::fs::read_dir(&log_dir) else { return vec![]; };
@@ -245,6 +257,7 @@ pub fn run() {
             copy_to_clipboard,
             open_folder_dialog,
             get_default_log_dir,
+            get_viewer_log_dir,
             list_accounts,
             show_main_window,
             toggle_topmost,

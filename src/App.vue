@@ -49,6 +49,7 @@ const settings = ref({
   blacklist:  [],
   lslPublicUrl: '',
   lslEnabled: false,
+  viewerType: 'firestorm',  // 'firestorm' | 'official' | 'custom'
 });
 const accountList = ref([]);
 const errorMessage = ref('');
@@ -84,7 +85,12 @@ const I18N_BUNDLES = {
     copyOriginal: "复制原文", copyTranslation: "复制译文", suggestReply: "AI 建议回复",
     aiChatPlc: "让 AI 帮你翻译、润色、建议回复…", aiChatSend: "发送",
     copyResult: "复制结果", clearResult: "清除",
-    refreshAccounts: "刷新账号列表"
+    refreshAccounts: "刷新账号列表",
+    viewerLabel: "客户端",
+    viewerFirestorm: "Firestorm Viewer",
+    viewerOfficial: "官方客户端 (Official)",
+    viewerCustom: "自定义目录",
+    logDirCustomHint: "请手动填写日志目录路径"
   },
   'en-US': {
     appTitle: "AI.SLtalk", listeningInfo: "Active", startListening: "Start Translator",
@@ -115,7 +121,12 @@ const I18N_BUNDLES = {
     copyOriginal: "Copy original", copyTranslation: "Copy translation", suggestReply: "AI suggest reply",
     aiChatPlc: "Ask AI to translate, polish, suggest a reply...", aiChatSend: "Send",
     copyResult: "Copy result", clearResult: "Clear",
-    refreshAccounts: "Refresh account list"
+    refreshAccounts: "Refresh account list",
+    viewerLabel: "Viewer",
+    viewerFirestorm: "Firestorm Viewer",
+    viewerOfficial: "Official Second Life Viewer",
+    viewerCustom: "Custom directory",
+    logDirCustomHint: "Enter the log directory path manually"
   }
 };
 
@@ -479,7 +490,7 @@ const GLOBAL_SETTINGS_KEY = 'sl-translator-global';
 // 账号级设置键（黑名单、接收语言等随账号变化）
 const accountSettingsKey = (account) => `sl-settings-${account}`;
 // 全局字段清单
-const GLOBAL_FIELDS = ['logDir', 'apiKey', 'baseUrl', 'model', 'uiLang', 'contextCount', 'translateGroup'];
+const GLOBAL_FIELDS = ['logDir', 'apiKey', 'baseUrl', 'model', 'uiLang', 'contextCount', 'translateGroup', 'viewerType'];
 
 const saveSettings = () => {
   const global = {};
@@ -532,6 +543,21 @@ const refreshAccounts = async () => {
     accountList.value = await invoke('list_accounts', { logDir: settings.value.logDir });
   } catch (e) {
     accountList.value = [];
+  }
+};
+
+// 切换客户端：自动填充日志目录并重新扫描账号
+const selectViewer = async (viewerType) => {
+  settings.value.viewerType = viewerType;
+  if (viewerType === 'custom') return;  // 自定义时不覆盖路径
+  try {
+    const dir = await invoke('get_viewer_log_dir', { viewer: viewerType });
+    if (dir) {
+      settings.value.logDir = dir;
+      await refreshAccounts();
+    }
+  } catch (e) {
+    console.error('获取客户端路径失败:', e);
   }
 };
 
@@ -816,7 +842,7 @@ const openTutorial = async () => {
 
           <div class="form-section">
             <label class="form-label">
-              <FolderOpen :size="13" /> {{ i18n.folderLog }}
+              <FolderOpen :size="13" /> {{ i18n.viewerLabel }}
               <button
                 class="help-icon-btn"
                 :title="i18n.tutorialTitle"
@@ -826,11 +852,30 @@ const openTutorial = async () => {
                 <HelpCircle :size="13" />
               </button>
             </label>
-            <div class="input-row">
+            <!-- 客户端快速选择 -->
+            <div class="viewer-selector">
+              <button
+                class="viewer-btn"
+                :class="{ active: settings.viewerType === 'firestorm' }"
+                @click="selectViewer('firestorm')"
+              >{{ i18n.viewerFirestorm }}</button>
+              <button
+                class="viewer-btn"
+                :class="{ active: settings.viewerType === 'official' }"
+                @click="selectViewer('official')"
+              >{{ i18n.viewerOfficial }}</button>
+              <button
+                class="viewer-btn"
+                :class="{ active: settings.viewerType === 'custom' }"
+                @click="selectViewer('custom')"
+              >{{ i18n.viewerCustom }}</button>
+            </div>
+            <!-- 自定义模式下才显示手动输入框 -->
+            <div class="input-row" v-if="settings.viewerType === 'custom'" style="margin-top:6px">
               <input
                 v-model="settings.logDir"
                 class="form-input"
-                placeholder="%AppData%\Firestorm_x64"
+                :placeholder="i18n.logDirCustomHint"
                 @change="refreshAccounts"
               />
               <button class="btn-browse" @click="browseLogDir">{{ i18n.browseLabel }}</button>
