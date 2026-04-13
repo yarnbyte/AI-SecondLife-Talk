@@ -32,6 +32,20 @@
 
 ---
 
+## ⚠️ 重要费用说明（请务必阅读）
+
+**本软件完全开源免费（MIT License）**，源代码公开，**不收取任何软件费用**。
+
+但是，**AI 翻译功能需要调用外部大模型 API**，因此：
+
+- 你需要**自行申请并付费 API Key**（这是行业标准做法）。
+- 费用由你所选择的 AI 服务商（如 DeepSeek、OpenAI 等）收取，按实际 token 用量计费。
+- **推荐低成本选项**：DeepSeek（中文优秀、性价比高）、本地 Ollama（完全免费离线，但需要自己部署模型）。
+
+> **小贴士**：轻度使用每月费用通常只需几元到几十元，具体取决于消息量和选择的模型。Grok 等模型对成人内容限制较少，可根据需求选择。
+
+---
+
 ## 🚀 快速上手（中文）
 
 ### 第一步：配置 Firestorm
@@ -176,6 +190,22 @@ npm run tauri build
 | 🌐 **Bilingual UI** | Built-in Simplified Chinese and English interface. Custom language packs supported. |
 | 💾 **Translation Archive** | All translated conversations are saved locally by channel. |
 | 🧠 **Context-aware Translation** | Sends conversation history to the AI for more accurate, natural translations. |
+
+---
+
+## ⚠️ Important Cost Disclaimer (Must Read)
+
+**This software is completely open-source and free (MIT License)**. The source code is public and **we do not charge any software fees**.
+
+However, **the AI translation feature requires calling external Large Language Model APIs**, therefore:
+
+- You must **apply for and pay for your own API Key** (this is industry standard practice).
+- API costs are charged directly by your chosen AI provider (e.g., DeepSeek, OpenAI, etc.) based on your actual token usage.
+- **Recommended low-cost options**: DeepSeek (excellent quality, high cost-performance), or Local Ollama (completely free and offline, but requires you to self-host models).
+
+> **Tip**: For light usage, monthly costs usually range from a few cents to a couple of dollars, depending on message volume and the chosen model. Models like Grok have fewer restrictions on adult content and can be selected based on your needs.
+
+---
 
 ## 🚀 Quick Start (English)
 
