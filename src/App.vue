@@ -102,7 +102,7 @@ const I18N_BUNDLES = {
     windowOpacityLabel: "窗口透明度",
     nearbyWhitelistLabel: "附近频道白名单",
     nearbyWhitelistCb: "启用附近白名单（仅翻译白名单内用户的消息，私聊不受影响）",
-    nearbyWhitelistPlc: "每行一个用户名，例如：\nAlice Resident\nCBB (coolbigbird)",
+    nearbyWhitelistPlc: "每行一个用户名，可从Profile复制过来",
     keywordBlocklistLabel: "关键词屏蔽（消息含以下词时不翻译）",
     keywordBlocklistPlc: "每行一个关键词，例如：\nis offline\n離開該區域",
   },
@@ -144,7 +144,7 @@ const I18N_BUNDLES = {
     windowOpacityLabel: "Window Opacity",
     nearbyWhitelistLabel: "Nearby Chat Whitelist",
     nearbyWhitelistCb: "Enable whitelist for Nearby Chat (only translate whitelisted users; IMs unaffected)",
-    nearbyWhitelistPlc: "One username per line, e.g.:\nAlice Resident\nCBB (coolbigbird)",
+    nearbyWhitelistPlc: "One username per line, copy from Profile",
     keywordBlocklistLabel: "Keyword Blocklist (skip translation if message contains any keyword)",
     keywordBlocklistPlc: "One keyword per line, e.g.:\nis offline\n離開該區域",
   }
@@ -1014,7 +1014,7 @@ const openTutorial = async () => {
               class="form-input"
               style="margin-top:6px; resize:vertical; min-height:70px; font-size:12px; line-height:1.5;"
               :value="settings.nearbyWhitelist.join('\n')"
-              @input="settings.nearbyWhitelist = $event.target.value.split('\n').map(s => s.trim()).filter(Boolean)"
+              @input="settings.nearbyWhitelist = $event.target.value.split('\n').filter(s => s !== '')"
               :placeholder="i18n.nearbyWhitelistPlc"
             />
           </div>
@@ -1025,7 +1025,7 @@ const openTutorial = async () => {
               class="form-input"
               style="resize:vertical; min-height:60px; font-size:12px; line-height:1.5;"
               :value="settings.keywordBlocklist.join('\n')"
-              @input="settings.keywordBlocklist = $event.target.value.split('\n').map(s => s.trim()).filter(Boolean)"
+              @input="settings.keywordBlocklist = $event.target.value.split('\n').filter(s => s !== '')"
               :placeholder="i18n.keywordBlocklistPlc"
             />
           </div>
