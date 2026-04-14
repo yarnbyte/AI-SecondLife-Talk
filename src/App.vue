@@ -105,6 +105,9 @@ const I18N_BUNDLES = {
     nearbyWhitelistPlc: "每行一个用户名，可从Profile复制过来",
     keywordBlocklistLabel: "关键词屏蔽（消息含以下词时不翻译）",
     keywordBlocklistPlc: "每行一个关键词，例如：\nis offline\n離開該區域",
+    secTranslation: "翻译参数",
+    secFilter: "过滤规则",
+    secAppearance: "界面外观",
   },
   'en-US': {
     appTitle: "AI.SLtalk", listeningInfo: "Active", startListening: "Start Translator",
@@ -147,6 +150,9 @@ const I18N_BUNDLES = {
     nearbyWhitelistPlc: "One username per line, copy from Profile",
     keywordBlocklistLabel: "Keyword Blocklist (skip translation if message contains any keyword)",
     keywordBlocklistPlc: "One keyword per line, e.g.:\nis offline\n離開該區域",
+    secTranslation: "Translation",
+    secFilter: "Filters",
+    secAppearance: "Appearance",
   }
 };
 
@@ -1001,7 +1007,7 @@ const openTutorial = async () => {
           <div class="acc-group">
             <button class="acc-header" @click="toggleSection('translate')">
               <MessageSquareDot :size="13" />
-              <span>{{ i18n.recvLangConfig.split('，')[0] || 'Translation' }}</span>
+              <span>{{ i18n.secTranslation }}</span>
               <span class="acc-arrow" :class="{ open: openSections.has('translate') }">›</span>
             </button>
             <div v-show="openSections.has('translate')" class="acc-body">
@@ -1026,7 +1032,7 @@ const openTutorial = async () => {
           <div class="acc-group">
             <button class="acc-header" @click="toggleSection('filter')">
               <BellOff :size="13" />
-              <span>{{ i18n.nearbyWhitelistLabel }}</span>
+              <span>{{ i18n.secFilter }}</span>
               <span class="acc-arrow" :class="{ open: openSections.has('filter') }">›</span>
             </button>
             <div v-show="openSections.has('filter')" class="acc-body">
@@ -1057,7 +1063,7 @@ const openTutorial = async () => {
           <div class="acc-group">
             <button class="acc-header" @click="toggleSection('appearance')">
               <Settings :size="13" />
-              <span>{{ i18n.uiLangLabel }} &amp; {{ i18n.windowOpacityLabel }}</span>
+              <span>{{ i18n.secAppearance }}</span>
               <span class="acc-arrow" :class="{ open: openSections.has('appearance') }">›</span>
             </button>
             <div v-show="openSections.has('appearance')" class="acc-body">
