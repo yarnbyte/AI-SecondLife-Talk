@@ -333,6 +333,17 @@ const toggleBlacklist = (targetId) => {
   saveSettings();
 };
 
+// ── 设置面板手风琴折叠 ───────────────────────────────────────
+const openSections = ref(new Set(['connection']));
+const toggleSection = (key) => {
+  if (openSections.value.has(key)) {
+    openSections.value.delete(key);
+  } else {
+    openSections.value.add(key);
+  }
+  openSections.value = new Set(openSections.value); // 触发响应式
+};
+
 // 监听并应用背景透明度
 watch(() => settings.value.bgOpacity, (alpha) => {
   document.documentElement.style.setProperty('--bg-opacity', alpha);
@@ -910,167 +921,177 @@ const openTutorial = async () => {
             <span style="white-space: pre-wrap;">{{ errorMessage }}</span>
           </div>
 
-          <div class="form-section">
-            <label class="form-label">
-              <FolderOpen :size="13" /> {{ i18n.viewerLabel }}
-              <button
-                class="help-icon-btn"
-                :title="i18n.tutorialTitle"
-                @click="openTutorial"
-                style="background:none;border:none;cursor:pointer;padding:0 2px;vertical-align:middle;opacity:0.7;color:rgba(255,255,255,0.85);"
-              >
-                <HelpCircle :size="13" />
-              </button>
-            </label>
-            <!-- 客户端快速选择 -->
-            <div class="viewer-selector">
-              <button
-                class="viewer-btn"
-                :class="{ active: settings.viewerType === 'firestorm' }"
-                @click="selectViewer('firestorm')"
-              >{{ i18n.viewerFirestorm }}</button>
-              <button
-                class="viewer-btn"
-                :class="{ active: settings.viewerType === 'official' }"
-                @click="selectViewer('official')"
-              >{{ i18n.viewerOfficial }}</button>
-              <button
-                class="viewer-btn"
-                :class="{ active: settings.viewerType === 'custom' }"
-                @click="selectViewer('custom')"
-              >{{ i18n.viewerCustom }}</button>
-            </div>
-            <!-- 自定义模式下才显示手动输入框 -->
-            <div class="input-row" v-if="settings.viewerType === 'custom'" style="margin-top:6px">
-              <input
-                v-model="settings.logDir"
-                class="form-input"
-                :placeholder="i18n.logDirCustomHint"
-                @change="refreshAccounts"
-              />
-              <button class="btn-browse" @click="browseLogDir">{{ i18n.browseLabel }}</button>
-            </div>
-          </div>
-
-          <div class="form-section">
-            <label class="form-label"><User :size="13" /> {{ i18n.slAccount }}</label>
-            <div class="input-row">
-              <div class="select-wrap" style="flex:1">
-                <select v-model="settings.account" class="form-select" @change="loadAccountSettings">
-                  <option value="" disabled>{{ i18n.slAccountDropTip }}</option>
-                  <option v-for="acc in accountList" :key="acc" :value="acc">{{ acc }}</option>
-                </select>
-                <ChevronDown :size="14" class="select-chevron" />
+          <!-- ① 连接 -->
+          <div class="acc-group">
+            <button class="acc-header" @click="toggleSection('connection')">
+              <FolderOpen :size="13" />
+              <span>{{ i18n.viewerLabel }} &amp; {{ i18n.slAccount }}</span>
+              <span class="acc-arrow" :class="{ open: openSections.has('connection') }">›</span>
+            </button>
+            <div v-show="openSections.has('connection')" class="acc-body">
+              <!-- 客户端 -->
+              <div class="form-section">
+                <label class="form-label">
+                  {{ i18n.viewerLabel }}
+                  <button class="help-icon-btn" :title="i18n.tutorialTitle" @click="openTutorial"
+                    style="background:none;border:none;cursor:pointer;padding:0 2px;vertical-align:middle;opacity:0.7;color:rgba(255,255,255,0.85);">
+                    <HelpCircle :size="13" />
+                  </button>
+                </label>
+                <div class="viewer-selector">
+                  <button class="viewer-btn" :class="{ active: settings.viewerType === 'firestorm' }" @click="selectViewer('firestorm')">{{ i18n.viewerFirestorm }}</button>
+                  <button class="viewer-btn" :class="{ active: settings.viewerType === 'official' }"   @click="selectViewer('official')">{{ i18n.viewerOfficial }}</button>
+                  <button class="viewer-btn" :class="{ active: settings.viewerType === 'custom' }"     @click="selectViewer('custom')">{{ i18n.viewerCustom }}</button>
+                </div>
+                <div class="input-row" v-if="settings.viewerType === 'custom'" style="margin-top:6px">
+                  <input v-model="settings.logDir" class="form-input" :placeholder="i18n.logDirCustomHint" @change="refreshAccounts" />
+                  <button class="btn-browse" @click="browseLogDir">{{ i18n.browseLabel }}</button>
+                </div>
               </div>
-              <button class="btn-browse" @click="refreshAccounts" :title="i18n.refreshAccounts">&#x21bb;</button>
-            </div>
-            <div class="form-hint" v-if="accountList.length === 0">
-              {{ i18n.slAccountNoDirHint }}
-            </div>
-          </div>
-
-          <div class="form-section">
-            <label class="form-label"><KeyRound :size="13" /> {{ i18n.apiKeyLabel }}</label>
-            <input
-              v-model="settings.apiKey"
-              type="password"
-              class="form-input"
-              placeholder="sk-xxxx..."
-            />
-          </div>
-
-          <div class="form-section">
-            <label class="form-label">{{ i18n.baseUrlLabel }}</label>
-            <input v-model="settings.baseUrl" class="form-input" placeholder="https://api.deepseek.com/v1" />
-          </div>
-
-          <div class="form-section">
-            <label class="form-label">{{ i18n.modelLabel }}</label>
-            <div class="input-row">
-              <input v-model="settings.model" class="form-input" placeholder="gpt-4o-mini" />
-              <button class="btn-browse" @click="testApiConnection" :disabled="testApiStatus === 'testing'" style="min-width: 80px;">
-                {{ testApiStatus === 'testing' ? i18n.testApiTesting : i18n.testApiBtn }}
-              </button>
-            </div>
-            <div v-if="testApiMessage" class="form-hint" :style="{ color: testApiStatus === 'success' ? '#10b981' : (testApiStatus === 'error' ? '#ef4444' : '#fbbf24') }" style="margin-top: 6px;">
-              {{ testApiMessage }}
+              <!-- 账号 -->
+              <div class="form-section" style="margin-bottom:0">
+                <label class="form-label"><User :size="13" /> {{ i18n.slAccount }}</label>
+                <div class="input-row">
+                  <div class="select-wrap" style="flex:1">
+                    <select v-model="settings.account" class="form-select" @change="loadAccountSettings">
+                      <option value="" disabled>{{ i18n.slAccountDropTip }}</option>
+                      <option v-for="acc in accountList" :key="acc" :value="acc">{{ acc }}</option>
+                    </select>
+                    <ChevronDown :size="14" class="select-chevron" />
+                  </div>
+                  <button class="btn-browse" @click="refreshAccounts" :title="i18n.refreshAccounts">&#x21bb;</button>
+                </div>
+                <div class="form-hint" v-if="accountList.length === 0">{{ i18n.slAccountNoDirHint }}</div>
+              </div>
             </div>
           </div>
 
-          <div class="form-section">
-            <label class="form-label">{{ i18n.recvLangConfig }}</label>
-            <input v-model="settings.recvLang" class="form-input" placeholder="Simplified Chinese / English / etc..." />
-          </div>
-
-          <div class="form-section">
-            <label class="form-label">{{ i18n.ctxCountSetting }}</label>
-            <input v-model.number="settings.contextCount" type="number" class="form-input" placeholder="5" />
-          </div>
-
-          <div class="form-section">
-            <label class="form-label">
-              <input type="checkbox" v-model="settings.translateGroup" style="vertical-align: middle; margin-right: 5px;" />
-              {{ i18n.groupCb }}
-            </label>
-          </div>
-
-          <div class="form-section">
-            <label class="form-label">
-              <input type="checkbox" v-model="settings.nearbyWhitelistEnabled" style="vertical-align: middle; margin-right: 5px;" />
-              {{ i18n.nearbyWhitelistCb }}
-            </label>
-            <textarea
-              v-if="settings.nearbyWhitelistEnabled"
-              class="form-input"
-              style="margin-top:6px; resize:vertical; min-height:70px; font-size:12px; line-height:1.5;"
-              v-model="nearbyWhitelistRaw"
-              :placeholder="i18n.nearbyWhitelistPlc"
-            />
-          </div>
-
-          <div class="form-section">
-            <label class="form-label">{{ i18n.keywordBlocklistLabel }}</label>
-            <textarea
-              class="form-input"
-              style="resize:vertical; min-height:60px; font-size:12px; line-height:1.5;"
-              v-model="keywordBlocklistRaw"
-              :placeholder="i18n.keywordBlocklistPlc"
-            />
-          </div>
-
-          <div class="form-section">
-            <label class="form-label" style="display: flex; justify-content: space-between;">
-              <span>{{ i18n.windowOpacityLabel }}</span>
-              <span style="opacity: 0.7;">{{ Math.round(settings.bgOpacity * 100) }}%</span>
-            </label>
-            <input 
-              type="range" 
-              v-model.number="settings.bgOpacity" 
-              min="0" max="1" step="0.05"
-              style="width: 100%; accent-color: var(--accent); cursor: pointer;"
-            />
-          </div>
-
-          <div class="form-section">
-            <label class="form-label">{{ i18n.uiLangLabel }}</label>
-            <div class="select-wrap">
-              <select v-model="settings.uiLang" class="form-select" @change="applyUiLang">
-                <option value="zh-CN">简体中文</option>
-                <option value="en-US">English</option>
-                <option value="custom">Custom (i18n.json)</option>
-              </select>
-              <ChevronDown :size="14" class="select-chevron" />
+          <!-- ② API 设置 -->
+          <div class="acc-group">
+            <button class="acc-header" @click="toggleSection('api')">
+              <KeyRound :size="13" />
+              <span>API</span>
+              <span class="acc-arrow" :class="{ open: openSections.has('api') }">›</span>
+            </button>
+            <div v-show="openSections.has('api')" class="acc-body">
+              <div class="form-section">
+                <label class="form-label">{{ i18n.apiKeyLabel }}</label>
+                <input v-model="settings.apiKey" type="password" class="form-input" placeholder="sk-xxxx..." />
+              </div>
+              <div class="form-section">
+                <label class="form-label">{{ i18n.baseUrlLabel }}</label>
+                <input v-model="settings.baseUrl" class="form-input" placeholder="https://api.deepseek.com/v1" />
+              </div>
+              <div class="form-section" style="margin-bottom:0">
+                <label class="form-label">{{ i18n.modelLabel }}</label>
+                <div class="input-row">
+                  <input v-model="settings.model" class="form-input" placeholder="gpt-4o-mini" />
+                  <button class="btn-browse" @click="testApiConnection" :disabled="testApiStatus === 'testing'" style="min-width: 76px;">
+                    {{ testApiStatus === 'testing' ? i18n.testApiTesting : i18n.testApiBtn }}
+                  </button>
+                </div>
+                <div v-if="testApiMessage" class="form-hint" :style="{ color: testApiStatus === 'success' ? '#10b981' : (testApiStatus === 'error' ? '#ef4444' : '#fbbf24') }" style="margin-top:6px;">
+                  {{ testApiMessage }}
+                </div>
+              </div>
             </div>
           </div>
 
-          <div style="display: flex; gap: 8px; margin-top: 10px;">
+          <!-- ③ 翻译参数 -->
+          <div class="acc-group">
+            <button class="acc-header" @click="toggleSection('translate')">
+              <MessageSquareDot :size="13" />
+              <span>{{ i18n.recvLangConfig.split('，')[0] || 'Translation' }}</span>
+              <span class="acc-arrow" :class="{ open: openSections.has('translate') }">›</span>
+            </button>
+            <div v-show="openSections.has('translate')" class="acc-body">
+              <div class="form-section">
+                <label class="form-label">{{ i18n.recvLangConfig }}</label>
+                <input v-model="settings.recvLang" class="form-input" placeholder="Simplified Chinese / English / etc..." />
+              </div>
+              <div class="form-section">
+                <label class="form-label">{{ i18n.ctxCountSetting }}</label>
+                <input v-model.number="settings.contextCount" type="number" class="form-input" placeholder="5" />
+              </div>
+              <div class="form-section" style="margin-bottom:0">
+                <label class="form-label" style="text-transform:none;letter-spacing:0;font-weight:500;">
+                  <input type="checkbox" v-model="settings.translateGroup" style="vertical-align:middle;margin-right:5px;" />
+                  {{ i18n.groupCb }}
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- ④ 过滤规则 -->
+          <div class="acc-group">
+            <button class="acc-header" @click="toggleSection('filter')">
+              <BellOff :size="13" />
+              <span>{{ i18n.nearbyWhitelistLabel }}</span>
+              <span class="acc-arrow" :class="{ open: openSections.has('filter') }">›</span>
+            </button>
+            <div v-show="openSections.has('filter')" class="acc-body">
+              <div class="form-section">
+                <label class="form-label" style="text-transform:none;letter-spacing:0;font-weight:500;">
+                  <input type="checkbox" v-model="settings.nearbyWhitelistEnabled" style="vertical-align:middle;margin-right:5px;" />
+                  {{ i18n.nearbyWhitelistCb }}
+                </label>
+                <textarea v-if="settings.nearbyWhitelistEnabled"
+                  class="form-input"
+                  style="margin-top:6px;resize:vertical;min-height:65px;font-size:12px;line-height:1.5;"
+                  v-model="nearbyWhitelistRaw"
+                  :placeholder="i18n.nearbyWhitelistPlc"
+                />
+              </div>
+              <div class="form-section" style="margin-bottom:0">
+                <label class="form-label">{{ i18n.keywordBlocklistLabel }}</label>
+                <textarea class="form-input"
+                  style="resize:vertical;min-height:55px;font-size:12px;line-height:1.5;"
+                  v-model="keywordBlocklistRaw"
+                  :placeholder="i18n.keywordBlocklistPlc"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- ⑤ 界面 -->
+          <div class="acc-group">
+            <button class="acc-header" @click="toggleSection('appearance')">
+              <Settings :size="13" />
+              <span>{{ i18n.uiLangLabel }} &amp; {{ i18n.windowOpacityLabel }}</span>
+              <span class="acc-arrow" :class="{ open: openSections.has('appearance') }">›</span>
+            </button>
+            <div v-show="openSections.has('appearance')" class="acc-body">
+              <div class="form-section">
+                <label class="form-label" style="display:flex;justify-content:space-between;">
+                  <span>{{ i18n.windowOpacityLabel }}</span>
+                  <span style="opacity:0.7;">{{ Math.round(settings.bgOpacity * 100) }}%</span>
+                </label>
+                <input type="range" v-model.number="settings.bgOpacity" min="0" max="1" step="0.05"
+                  style="width:100%;accent-color:var(--accent);cursor:pointer;" />
+              </div>
+              <div class="form-section" style="margin-bottom:0">
+                <label class="form-label">{{ i18n.uiLangLabel }}</label>
+                <div class="select-wrap">
+                  <select v-model="settings.uiLang" class="form-select" @change="applyUiLang">
+                    <option value="zh-CN">简体中文</option>
+                    <option value="en-US">English</option>
+                    <option value="custom">Custom (i18n.json)</option>
+                  </select>
+                  <ChevronDown :size="14" class="select-chevron" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 底部操作 -->
+          <div style="display:flex;gap:8px;margin-top:12px;">
             <button class="btn-secondary" @click="openHistoryFolder" :title="i18n.viewHistory">
               <BookText :size="14" />
             </button>
             <button class="btn-secondary" @click="openTutorial" :title="i18n.tutorialTitle">
               <HelpCircle :size="14" />
             </button>
-            <button class="btn-save" style="flex: 1;" @click="saveSettings">{{ i18n.saveBtn }}</button>
+            <button class="btn-save" style="flex:1;" @click="saveSettings">{{ i18n.saveBtn }}</button>
           </div>
 
         </section>
@@ -1078,6 +1099,7 @@ const openTutorial = async () => {
 
 
       <!-- API Key 快速条（开启监听后若未填会提示） -->
+
       <div class="apikey-bar" v-if="isListening && !settings.apiKey">
         <KeyRound :size="13" class="apikey-icon" />
         <span class="apikey-hint">{{ i18n.apiKeyFloatTip }}</span>

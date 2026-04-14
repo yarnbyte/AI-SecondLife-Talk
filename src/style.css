@@ -592,3 +592,48 @@ html, body, #app {
   background: rgba(255,255,255,0.2);
   color: white;
 }
+
+/* ── 设置面板手风琴 ── */
+.acc-group {
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+.acc-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 12px;
+  background: rgba(255,255,255,0.04);
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, color 0.15s;
+}
+.acc-header:hover {
+  background: rgba(99,102,241,0.12);
+  color: #c7d2fe;
+}
+.acc-arrow {
+  margin-left: auto;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--text-muted);
+  display: inline-block;
+  transform: rotate(0deg);
+  transition: transform 0.2s ease;
+}
+.acc-arrow.open {
+  transform: rotate(90deg);
+  color: var(--accent);
+}
+.acc-body {
+  padding: 10px 12px 6px;
+  background: rgba(0,0,0,0.15);
+}
