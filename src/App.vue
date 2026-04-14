@@ -314,6 +314,16 @@ const isTargetBlacklisted = (targetId) => {
   return settings.value.blacklist.some(n => n.toLowerCase() === targetId.toLowerCase());
 };
 
+// ── 白名单 / 关键词屏蔽：用 computed v-model 避免回车换行被拦截 ──
+const nearbyWhitelistRaw = computed({
+  get: () => settings.value.nearbyWhitelist.join('\n'),
+  set: (v) => { settings.value.nearbyWhitelist = v.split('\n'); }
+});
+const keywordBlocklistRaw = computed({
+  get: () => settings.value.keywordBlocklist.join('\n'),
+  set: (v) => { settings.value.keywordBlocklist = v.split('\n'); }
+});
+
 const toggleBlacklist = (targetId) => {
   if (isTargetBlacklisted(targetId)) {
     settings.value.blacklist = settings.value.blacklist.filter(n => n.toLowerCase() !== targetId.toLowerCase());
@@ -1013,8 +1023,7 @@ const openTutorial = async () => {
               v-if="settings.nearbyWhitelistEnabled"
               class="form-input"
               style="margin-top:6px; resize:vertical; min-height:70px; font-size:12px; line-height:1.5;"
-              :value="settings.nearbyWhitelist.join('\n')"
-              @input="settings.nearbyWhitelist = $event.target.value.split('\n').filter(s => s !== '')"
+              v-model="nearbyWhitelistRaw"
               :placeholder="i18n.nearbyWhitelistPlc"
             />
           </div>
@@ -1024,8 +1033,7 @@ const openTutorial = async () => {
             <textarea
               class="form-input"
               style="resize:vertical; min-height:60px; font-size:12px; line-height:1.5;"
-              :value="settings.keywordBlocklist.join('\n')"
-              @input="settings.keywordBlocklist = $event.target.value.split('\n').filter(s => s !== '')"
+              v-model="keywordBlocklistRaw"
               :placeholder="i18n.keywordBlocklistPlc"
             />
           </div>
