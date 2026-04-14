@@ -1136,7 +1136,7 @@ const openTutorial = async () => {
       </div>
 
       <!-- 聊天面板 -->
-      <div class="chat-list" ref="chatScrollRef" @scroll="handleChatScroll">
+      <div class="chat-list" v-show="activeTab === TAB_CHAT" ref="chatScrollRef" @scroll="handleChatScroll">
         <div
           v-for="(msg, i) in activeTabMessages"
           :key="i"

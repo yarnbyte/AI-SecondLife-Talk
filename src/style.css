@@ -183,10 +183,11 @@ html, body, #app {
 
 /* ── 设置面板 ───────────────────────────────────────────────── */
 .settings-panel {
-  background: rgba(0,0,0,.4);
+  background: rgba(8, 12, 30, 0.97);
   border-bottom: 1px solid var(--border);
-  padding: 16px; overflow-y: auto;
-  max-height: 65vh;
+  padding: 14px 14px 16px;
+  overflow-y: auto;
+  flex: 1;
 }
 
 
