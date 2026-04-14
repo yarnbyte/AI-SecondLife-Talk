@@ -55,6 +55,9 @@ const settings = ref({
   lslEnabled: false,
   viewerType: 'firestorm',  // 'firestorm' | 'official' | 'custom'
   bgOpacity: 0.75,          // 窗口背景透明度
+  nearbyWhitelistEnabled: false, // 附近频道白名单开关
+  nearbyWhitelist: [],           // 白名单用户名数组（附近频道）
+  keywordBlocklist: [],          // 关键词屏蔽数组（含此词不翻译）
 });
 const accountList = ref([]);
 const errorMessage = ref('');
@@ -97,6 +100,11 @@ const I18N_BUNDLES = {
     viewerCustom: "自定义目录",
     logDirCustomHint: "请手动填写日志目录路径",
     windowOpacityLabel: "窗口透明度",
+    nearbyWhitelistLabel: "附近频道白名单",
+    nearbyWhitelistCb: "启用附近白名单（仅翻译白名单内用户的消息，私聊不受影响）",
+    nearbyWhitelistPlc: "每行一个用户名，例如：\nAlice Resident\nCBB (coolbigbird)",
+    keywordBlocklistLabel: "关键词屏蔽（消息含以下词时不翻译）",
+    keywordBlocklistPlc: "每行一个关键词，例如：\nis offline\n離開該區域",
   },
   'en-US': {
     appTitle: "AI.SLtalk", listeningInfo: "Active", startListening: "Start Translator",
@@ -134,6 +142,11 @@ const I18N_BUNDLES = {
     viewerCustom: "Custom directory",
     logDirCustomHint: "Enter the log directory path manually",
     windowOpacityLabel: "Window Opacity",
+    nearbyWhitelistLabel: "Nearby Chat Whitelist",
+    nearbyWhitelistCb: "Enable whitelist for Nearby Chat (only translate whitelisted users; IMs unaffected)",
+    nearbyWhitelistPlc: "One username per line, e.g.:\nAlice Resident\nCBB (coolbigbird)",
+    keywordBlocklistLabel: "Keyword Blocklist (skip translation if message contains any keyword)",
+    keywordBlocklistPlc: "One keyword per line, e.g.:\nis offline\n離開該區域",
   }
 };
 
@@ -461,6 +474,30 @@ onMounted(async () => {
     );
     if (isMySelf || isBlacklisted) return;
 
+    // 附近频道白名单过滤（私聊不受影响）
+    const PUBLIC_CHAT_FILES_WL = ['chat.txt', 'conversation.log'];
+    const isNearbyChan = PUBLIC_CHAT_FILES_WL.includes(source.toLowerCase());
+    if (isNearbyChan && settings.value.nearbyWhitelistEnabled) {
+      const wl = settings.value.nearbyWhitelist;
+      const senderLower = sender.toLowerCase();
+      // 白名单匹配：用户名完全匹配 OR 括号格式 "Display (username)" 中的任一部分匹配
+      const inWhitelist = wl.some(name => {
+        const n = name.trim().toLowerCase();
+        if (!n) return false;
+        return senderLower === n || senderLower.includes(n);
+      });
+      if (!inWhitelist) return;
+    }
+
+    // 关键词屏蔽：消息原文中包含屏蔽词则不翻译
+    const kbl = settings.value.keywordBlocklist;
+    const textLower = text.toLowerCase();
+    const hasBlockedKeyword = kbl.some(kw => {
+      const k = kw.trim().toLowerCase();
+      return k && textLower.includes(k);
+    });
+    if (hasBlockedKeyword) return;
+
     // 组织上文（将同一个对话频道里的前面 N 句当做参考喂给AI以保持连贯！）
     const history = getHistoryContext(source);
 
@@ -521,7 +558,7 @@ const GLOBAL_SETTINGS_KEY = 'sl-translator-global';
 // 账号级设置键（黑名单、接收语言等随账号变化）
 const accountSettingsKey = (account) => `sl-settings-${account}`;
 // 全局字段清单
-const GLOBAL_FIELDS = ['logDir', 'account', 'apiKey', 'baseUrl', 'model', 'uiLang', 'contextCount', 'translateGroup', 'viewerType', 'bgOpacity'];
+const GLOBAL_FIELDS = ['logDir', 'account', 'apiKey', 'baseUrl', 'model', 'uiLang', 'contextCount', 'translateGroup', 'viewerType', 'bgOpacity', 'nearbyWhitelistEnabled'];
 
 const saveSettings = () => {
   const global = {};
@@ -530,9 +567,11 @@ const saveSettings = () => {
 
   if (settings.value.account) {
     const perAccount = {
-      account:   settings.value.account,
-      recvLang:  settings.value.recvLang,
-      blacklist: settings.value.blacklist,
+      account:            settings.value.account,
+      recvLang:           settings.value.recvLang,
+      blacklist:          settings.value.blacklist,
+      nearbyWhitelist:    settings.value.nearbyWhitelist,
+      keywordBlocklist:   settings.value.keywordBlocklist,
     };
     localStorage.setItem(accountSettingsKey(settings.value.account), JSON.stringify(perAccount));
   }
@@ -546,11 +585,15 @@ const loadAccountSettings = () => {
     if (saved) {
       const parsed = JSON.parse(saved);
       // 只覆盖账号级字段，不影响 API Key 等全局字段
-      settings.value.recvLang  = parsed.recvLang  ?? settings.value.recvLang;
-      settings.value.blacklist = parsed.blacklist ?? [];
+      settings.value.recvLang          = parsed.recvLang          ?? settings.value.recvLang;
+      settings.value.blacklist          = parsed.blacklist          ?? [];
+      settings.value.nearbyWhitelist    = parsed.nearbyWhitelist    ?? [];
+      settings.value.keywordBlocklist   = parsed.keywordBlocklist   ?? [];
     } else {
       // 新账号：重置账号级字段为默认值
-      settings.value.blacklist = [];
+      settings.value.blacklist        = [];
+      settings.value.nearbyWhitelist  = [];
+      settings.value.keywordBlocklist = [];
     }
   } catch (_) {}
 };
@@ -959,6 +1002,32 @@ const openTutorial = async () => {
               <input type="checkbox" v-model="settings.translateGroup" style="vertical-align: middle; margin-right: 5px;" />
               {{ i18n.groupCb }}
             </label>
+          </div>
+
+          <div class="form-section">
+            <label class="form-label">
+              <input type="checkbox" v-model="settings.nearbyWhitelistEnabled" style="vertical-align: middle; margin-right: 5px;" />
+              {{ i18n.nearbyWhitelistCb }}
+            </label>
+            <textarea
+              v-if="settings.nearbyWhitelistEnabled"
+              class="form-input"
+              style="margin-top:6px; resize:vertical; min-height:70px; font-size:12px; line-height:1.5;"
+              :value="settings.nearbyWhitelist.join('\n')"
+              @input="settings.nearbyWhitelist = $event.target.value.split('\n').map(s => s.trim()).filter(Boolean)"
+              :placeholder="i18n.nearbyWhitelistPlc"
+            />
+          </div>
+
+          <div class="form-section">
+            <label class="form-label">{{ i18n.keywordBlocklistLabel }}</label>
+            <textarea
+              class="form-input"
+              style="resize:vertical; min-height:60px; font-size:12px; line-height:1.5;"
+              :value="settings.keywordBlocklist.join('\n')"
+              @input="settings.keywordBlocklist = $event.target.value.split('\n').map(s => s.trim()).filter(Boolean)"
+              :placeholder="i18n.keywordBlocklistPlc"
+            />
           </div>
 
           <div class="form-section">
